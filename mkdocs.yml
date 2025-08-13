@@ -1,0 +1,9 @@
+site_name: BlackboxProgramming Docs
+nav:
+  - Home: index.md
+  - Roadmap: roadmap.md
+  - ADRs:
+      - "0001: Initial architecture decision": adr/0001-record-architecture-decisions.md
+
+theme:
+  name: readthedocs
