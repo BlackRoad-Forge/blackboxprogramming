@@ -1,0 +1,9 @@
+{
+  "name": "superior-ai-platform-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for the Superior AI platform",
+  "scripts": {
+    "build": "rm -rf dist && mkdir dist && cp -r public/* dist/ && cp -r styles dist/"
+  },
+  "dependencies": {}
+}
