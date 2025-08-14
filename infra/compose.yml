@@ -1,0 +1,212 @@
+version: "3.9"
+
+networks:
+  web:
+    external: false
+  internal:
+    external: false
+
+volumes:
+  letsencrypt:
+  pgdata:
+  redisdata:
+
+services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.le.acme.tlschallenge=true"
+      - "--certificatesresolvers.le.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+      - "--api.dashboard=true"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "letsencrypt:/letsencrypt"
+    networks: [web]
+
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: lucidia
+      POSTGRES_USER: lucidia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [ "pgdata:/var/lib/postgresql/data" ]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+    restart: always
+
+  redis:
+    image: redis:7
+    volumes: [ "redisdata:/data" ]
+    networks: [internal]
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgres://lucidia:${POSTGRES_PASSWORD}@postgres:5432/lucidia
+      REDIS_URL: redis://redis:6379/0
+      PLANNER_URL: http://planner:3000/plan
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - internal
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=le"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
+    restart: always
+
+  planner:
+    build:
+      context: .
+      dockerfile: planner/Dockerfile
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - backend
+    networks:
+      - internal
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.planner.rule=Host(`planner.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.planner.entrypoints=websecure"
+      - "traefik.http.routers.planner.tls.certresolver=le"
+      - "traefik.http.services.planner.loadbalancer.server.port=3000"
+    restart: always
+
+  portal:
+    image: nginx:alpine
+    volumes:
+      - ./apps/portal:/usr/share/nginx/html:ro
+    networks: [web]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portal.rule=Host(`${ROOT_DOMAIN}`) || Host(`www.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.portal.entrypoints=websecure"
+      - "traefik.http.routers.portal.tls.certresolver=le"
+      - "traefik.http.services.portal.loadbalancer.server.port=80"
+    restart: always
+
+  roadview:
+    image: nginx:alpine
+    volumes:
+      - ./apps/roadview:/usr/share/nginx/html:ro
+    networks: [web]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.roadview.rule=Host(`roadview.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.roadview.entrypoints=websecure"
+      - "traefik.http.routers.roadview.tls.certresolver=le"
+      - "traefik.http.services.roadview.loadbalancer.server.port=80"
+    restart: always
+
+  roadworld:
+    image: nginx:alpine
+    volumes:
+      - ./apps/roadworld:/usr/share/nginx/html:ro
+    networks: [web]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.roadworld.rule=Host(`roadworld.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.roadworld.entrypoints=websecure"
+      - "traefik.http.routers.roadworld.tls.certresolver=le"
+      - "traefik.http.services.roadworld.loadbalancer.server.port=80"
+    restart: always
+
+  roadie:
+    image: nginx:alpine
+    volumes:
+      - ./apps/roadie:/usr/share/nginx/html:ro
+    networks: [web]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.roadie.rule=Host(`roadie.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.roadie.entrypoints=websecure"
+      - "traefik.http.routers.roadie.tls.certresolver=le"
+      - "traefik.http.services.roadie.loadbalancer.server.port=80"
+    restart: always
+
+  carpool:
+    image: nginx:alpine
+    volumes:
+      - ./apps/carpool:/usr/share/nginx/html:ro
+    networks: [web]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.carpool.rule=Host(`carpool.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.carpool.entrypoints=websecure"
+      - "traefik.http.routers.carpool.tls.certresolver=le"
+      - "traefik.http.services.carpool.loadbalancer.server.port=80"
+    restart: always
+
+  corporate:
+    image: nginx:alpine
+    volumes:
+      - ./apps/corporate:/usr/share/nginx/html:ro
+    networks: [web]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.corporate.rule=Host(`${INC_DOMAIN}`) || Host(`www.${INC_DOMAIN}`)"
+      - "traefik.http.routers.corporate.entrypoints=websecure"
+      - "traefik.http.routers.corporate.tls.certresolver=le"
+      - "traefik.http.services.corporate.loadbalancer.server.port=80"
+    restart: always
+
+  roadcoin:
+    image: nginx:alpine
+    volumes:
+      - ./apps/roadcoin:/usr/share/nginx/html:ro
+    networks: [web]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.roadcoin.rule=Host(`roadcoin.${INC_DOMAIN}`)"
+      - "traefik.http.routers.roadcoin.entrypoints=websecure"
+      - "traefik.http.routers.roadcoin.tls.certresolver=le"
+      - "traefik.http.services.roadcoin.loadbalancer.server.port=80"
+    restart: always
+
+  roadchain:
+    image: nginx:alpine
+    volumes:
+      - ./apps/roadchain:/usr/share/nginx/html:ro
+    networks: [web]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.roadchain.rule=Host(`roadchain.${INC_DOMAIN}`)"
+      - "traefik.http.routers.roadchain.entrypoints=websecure"
+      - "traefik.http.routers.roadchain.tls.certresolver=le"
+      - "traefik.http.services.roadchain.loadbalancer.server.port=80"
+    restart: always
+
+  vc:
+    image: nginx:alpine
+    volumes:
+      - ./apps/vc:/usr/share/nginx/html:ro
+    networks: [web]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vc.rule=Host(`vc.${INC_DOMAIN}`)"
+      - "traefik.http.routers.vc.entrypoints=websecure"
+      - "traefik.http.routers.vc.tls.certresolver=le"
+      - "traefik.http.services.vc.loadbalancer.server.port=80"
+    restart: always
