@@ -16,7 +16,7 @@ function App() {
   const wsRef = useRef(null);
 
   // Establish WebSocket connection on mount
-  useEffect(() => {
+  useEffect(() => 8000
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const wsUrl = `${protocol}://${window.location.hostname}:8000/ws/updates`;
     wsRef.current = new WebSocket(wsUrl);
@@ -25,7 +25,12 @@ function App() {
         const msg = JSON.parse(event.data);
         if (msg.type === 'reasoning_complete') {
           const data = msg.data;
-          setMessages((prev) => [...prev, { question: data.question, answer: data.answer, timestamp: data.timestamp }]);
+          setMessages((prev) => [...prev, {
+            question: data.question,
+            answer: data.answer,
+            explanation: data.explanation,
+            timestamp: data.timestamp,
+          }]);
         }
       } catch (e) {
         console.error('Invalid WebSocket message', e);
@@ -69,7 +74,12 @@ function App() {
       .then((res) => res.json())
       .then((data) => {
         // Append the response to messages; WebSocket will also push result
-        setMessages((prev) => [...prev, { question: data.question, answer: data.answer, timestamp: data.timestamp }]);
+        setMessages((prev) => [...prev, {
+          question: data.question,
+          answer: data.answer,
+          explanation: data.explanation,
+          timestamp: data.timestamp,
+        }]);
         setQuestion('');
       })
       .catch((err) => console.error('Failed to submit question', err));
@@ -91,9 +101,14 @@ function App() {
       React.createElement('h2', null, 'Messages'),
       React.createElement('ul', null,
         messages.map((msg, idx) =>
-          React.createElement('li', { key: idx, style: { marginBottom: '0.5rem' } },
-            React.createElement('strong', null, 'Q: '), msg.question, React.createElement('br'),
-            React.createElement('strong', null, 'A: '), msg.answer
+          React.createElement('li', { key: idx, style: { marginBottom: '0.75rem' } },
+            React.createElement('div', null,
+              React.createElement('strong', null, 'Q: '), msg.question
+            ),
+            React.createElement('div', null,
+              React.createElement('strong', null, 'A: '), msg.answer
+            ),
+            msg.explanation ? React.createElement('div', { style: { marginTop: '0.25rem', fontStyle: 'italic', color: '#888' } }, msg.explanation) : null
           )
         )
       ),
