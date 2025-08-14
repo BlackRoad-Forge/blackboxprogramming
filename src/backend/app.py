@@ -1,9 +1,20 @@
-# src/backend/app.py
-# Placeholder for the backend application entry point.
+from fastapi import FastAPI
 
-def main():
-    """Main entry point for the backend application."""
-    pass
+from .routes import health, suggestions
+from .settings import settings
+
+app = FastAPI(title=settings.app_name)
+
+# Include API routers with prefixes
+app.include_router(health.router, prefix="/api")
+app.include_router(suggestions.router, prefix="/api")
+
+
+def main() -> None:
+    """Launch the FastAPI application using uvicorn."""
+    import uvicorn
+    uvicorn.run("src.backend.app:app", host="0.0.0.0", port=8000, reload=False)
+
 
 if __name__ == "__main__":
     main()

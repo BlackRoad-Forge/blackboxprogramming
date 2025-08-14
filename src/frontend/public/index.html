@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Superior AI Platform</title>
+  <link rel="stylesheet" href="../styles/style.css">
+</head>
+<body>
+  <h1>Superior AI Platform</h1>
+  <form id="prompt-form">
+    <textarea id="prompt" rows="6" cols="50" placeholder="Enter code snippet..."></textarea><br>
+    <button type="submit">Suggest Code</button>
+  </form>
+  <pre id="result"></pre>
+  <script>
+    document.getElementById('prompt-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const prompt = document.getElementById('prompt').value;
+      const response = await fetch('/api/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: prompt })
+      });
+      const data = await response.json();
+      document.getElementById('result').textContent = data.suggestion || JSON.stringify(data, null, 2);
+    });
+  </script>
+</body>
+</html>
