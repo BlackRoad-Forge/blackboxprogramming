@@ -18,7 +18,7 @@ function App() {
   // Establish WebSocket connection on mount
   useEffect(() => 8000
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${protocol}://${window.location.hostname}:8000/ws/updates`;
+c    const wsUrl = `${protocol}://${window.location.hostname}:8080/ws/updates`;
     wsRef.current = new WebSocket(wsUrl);
     wsRef.current.onmessage = (event) => {
       try {
