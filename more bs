@@ -1,0 +1,6 @@
+cd git_ready
+git init
+git remote add origin git@github.com:blackboxprogramming/<repo>.git
+git add .
+git commit -m "Lucidia full delivery"
+git push origin main
