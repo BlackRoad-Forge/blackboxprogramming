@@ -1,0 +1,46 @@
+print('guardian online')
+```"></textarea>
+  <div class="row">
+    <label><input type="checkbox" id="remember"/> Remember token on this device</label>
+    <button id="send">Create issue + run</button>
+  </div>
+  <p id="out" class="hint"></p>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const tokenKey = "lucidia-gh-token";
+const saved = localStorage.getItem(tokenKey);
+if (saved) { $("#token").value = saved; $("#remember").checked = true; }
+
+$("#send").onclick = async () => {
+  const repo = $("#repo").value.trim();
+  const token = $("#token").value.trim();
+  const title = $("#title").value.trim();
+  const body = $("#body").value;
+
+  if (!/^[^\/]+\/[^\/]+$/.test(repo)) return msg("Invalid repo", true);
+  if (!token) return msg("Token required (repo scope).", true);
+  if (!title || !body) return msg("Title and body required.", true);
+
+  if ($("#remember").checked) localStorage.setItem(tokenKey, token);
+  else localStorage.removeItem(tokenKey);
+
+  try {
+    const issue = await fetch(`https://api.github.com/repos/${repo}/issues`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "Accept":"application/vnd.github+json" },
+      body: JSON.stringify({ title, body, labels: ["ingest","auto"] })
+    }).then(r => r.json());
+
+    if (issue.number) {
+      msg(`✅ Issue #${issue.number} created. Workflow will ingest & open a PR shortly.`, false);
+    } else {
+      throw new Error(issue.message || "Issue create failed");
+    }
+  } catch (e) { msg("Error: " + e.message, true); }
+};
+
+function msg(t, bad){ const o=$("#out"); o.textContent=t; o.className = bad ? "err" : "ok"; }
+</script>
+</body>
+</html>

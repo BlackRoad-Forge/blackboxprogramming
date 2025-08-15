@@ -1,0 +1,36 @@
+<!-- FILE: .github/workflows/ingest-from-issue.yml -->
+name: Ingest Code From Issue
+on:
+  issues: { types: [labeled] }
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+jobs:
+  ingest:
+    if: github.event.label.name == 'ingest'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: |
+          pip install black==24.4.2 isort==5.13.2 || true
+          npm i -g prettier || true
+          sudo apt-get update && sudo apt-get install -y shfmt || true
+      - name: Run ingest
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: python tools/ingest_issue.py
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          branch: "auto/ingest-${{ github.event.issue.number }}"
+          base: "main"
+          title: "feat: ingest code from issue #${{ github.event.issue.number }}"
+          body: "Auto-ingested files from issue #${{ github.event.issue.number }}."
+          labels: |
+            auto
+            ingest
