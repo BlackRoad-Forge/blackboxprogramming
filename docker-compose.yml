@@ -1,12 +1,54 @@
 version: '3.9'
 
 services:
-  app:
-    build: .
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: lucidia
+      POSTGRES_USER: lucidia
+      POSTGRES_PASSWORD: lucidiapassword
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  redis:
+    image: redis:6
+    volumes:
+      - redisdata:/data
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      DATABASE_URL: postgres://lucidia:lucidiapassword@postgres:5432/lucidia
+      REDIS_URL: redis://redis:6379/0
+      PLANNER_URL: http://planner:3000/plan
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: always
     ports:
       - "8000:8000"
-    environment:
-      - UVICORN_PORT=8000
-    volumes:
-      - .:/app
-    command: uvicorn src.backend.app:app --host 0.0.0.0 --port 8000 --reload
+
+  planner:
+    build:
+      context: .
+      dockerfile: planner/Dockerfile
+    # The command is defined in the Dockerfile; retain for clarity
+    command: ["node", "index.js"]
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  pgdata:
+  redisdata:
