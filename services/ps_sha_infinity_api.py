@@ -6,6 +6,7 @@ from starlette.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware import Middleware
 from ps_sha_infinity_core import ps_sha_infinity, sign_message, verify_message
+from fastapi.responses import FileResponse
 
 API_TOKEN = os.getenv("PS_SHA_INFINITY_TOKEN", "change-me-dev")
 SIGNING_SECRET = os.getenv("PS_SHA_INFINITY_SIGNING_SECRET", "dev-signing-secret")
@@ -105,3 +106,11 @@ def chat_bind_endpoint(req: ChatBindRequest, authorization: Optional[str] = Head
     res = ps_sha_infinity(payload=payload, salt=DEFAULT_SALT, breath=req.breath, meta=req.meta)
     sig = sign_message(res["hash_hex"], SIGNING_SECRET)
     return {"hash": res, "signature_hex": sig, "echo": payload}
+
+
+@app.get("/ui", include_in_schema=False)
+def serve_ui():
+    """Serve the static chat UI."""
+    base_dir = os.path.dirname(__file__)
+    file_path = os.path.join(base_dir, "ui", "index.html")
+    return FileResponse(file_path, media_type="text/html")
