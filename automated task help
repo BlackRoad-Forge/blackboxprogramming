@@ -1,0 +1,92 @@
+<!-- FILE: .github/workflows/auto-pr-rolling.yml -->
+name: Auto PR (Rolling Lucidia Ops)
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Optional ops task before PR (e.g., issues:sync or run:script tools/autopush.sh)"
+        required: false
+        default: ""
+  schedule:
+    - cron: "0 */3 * * *"   # every 3 hours; change as you like
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  BASE_BRANCH: main
+  PR_BRANCH: auto/lucidia-ops
+  PR_TITLE: "chore: lucidia scheduled update (rolling)"
+  PR_BODY: |
+    This is a rolling PR automatically kept up to date by **Auto PR (Lucidia Ops)**.
+    - Includes a tiny heartbeat so there is always a diff.
+    - Optionally runs an ops task first (`issues:sync` or `run:script ...`).
+    Merge when ready; the same branch/PR will be updated again next run.
+
+jobs:
+  rolling:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+          fetch-depth: 0
+
+      - name: Setup Python (only if task supplied)
+        if: ${{ github.event.inputs.task != '' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Optional: run ops task
+        if: ${{ github.event.inputs.task != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TASK: ${{ github.event.inputs.task }}
+        run: |
+          set -euo pipefail
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install requests pyyaml
+          case "$TASK" in
+            issues:sync) python tools/issue_sync.py ;;
+            run:script\ *) S="${TASK#run:script }"; chmod +x "$S"; "$S" ;;
+            *) echo "Unknown task '$TASK' (supported: issues:sync | run:script <path>)" ;;
+          esac
+
+      - name: Heartbeat (guarantee a diff)
+        run: |
+          mkdir -p .blackroad/heartbeat
+          printf '{ "utc":"%s","run_id":"%s" }\n' "$(date -u +%FT%TZ)" "${{ github.run_id }}" > .blackroad/heartbeat/rolling.json
+
+      - name: Commit changes to rolling branch
+        run: |
+          set -e
+          git config user.name "lucidia-bot"
+          git config user.email "lucidia-bot@users.noreply.github.com"
+          # create or switch
+          if git ls-remote --exit-code --heads origin "${{ env.PR_BRANCH }}" >/dev/null 2>&1; then
+            git checkout -B "${{ env.PR_BRANCH }}" "origin/${{ env.PR_BRANCH }}"
+            git merge --no-edit "${{ env.BASE_BRANCH }}" || true
+          else
+            git checkout -b "${{ env.PR_BRANCH }}"
+          fi
+          git add -A
+          git commit -m "auto: heartbeat + ops [skip ci]" || echo "No changes to commit."
+          git push -u origin "${{ env.PR_BRANCH }}" || true
+
+      - name: Open/Update PR (rolling)
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: ${{ env.PR_BRANCH }}            # fixed branch → single rolling PR
+          base: ${{ env.BASE_BRANCH }}
+          title: ${{ env.PR_TITLE }}
+          body: ${{ env.PR_BODY }}
+          labels: |
+            auto
+            lucidia
+          draft: false
+          update-existing: true                   # keep same PR updated
