@@ -1,0 +1,51 @@
+name: Blackboxprogramming Runner
+
+on:
+  issues:
+    types: [opened, edited, labeled, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: blackboxprogramming-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    if: >
+      (github.event_name == 'issues' &&
+       contains(github.event.issue.labels.*.name, 'blackbox:run')) ||
+      (github.event_name == 'issue_comment' &&
+       contains(github.event.comment.body, '/blackbox run'))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run Blackboxprogramming
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          BLACKBOX_ALLOWED_DIRS: "."   # e.g. "src,tests,scripts,docs" to restrict
+        run: |
+          python3 scripts/blackbox_apply_issue.py
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "Blackboxprogramming completed. See logs above and PR/Issue for details." >> "$GITHUB_STEP_SUMMARY"
