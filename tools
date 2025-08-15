@@ -1,0 +1,131 @@
+# FILE: tools/ingest_issue.py
+import os, re, json, subprocess, sys, pathlib
+import requests
+
+ISSUE_NUMBER = os.environ["ISSUE_NUMBER"]
+REPO = os.environ["REPO"]
+TOKEN = os.environ["GH_TOKEN"]
+API = "https://api.github.com"
+
+HEAD_BRANCH = f"auto/ingest-{ISSUE_NUMBER}"
+
+FILE_HDR = re.compile(r"<!--\s*FILE:\s*(?P<path>[^>]+)\s*-->", re.IGNORECASE)
+FENCE = re.compile(
+    r"(?P<hdr><!--\s*FILE:[^>]+-->\s*)?```(?P<lang>[a-zA-Z0-9_+\-\.]*)\n(?P<code>.*?)(?:\n)?```",
+    re.DOTALL,
+)
+
+LANG_DEFAULTS = {
+    "py": "src/python",
+    "js": "web/js",
+    "ts": "web/ts",
+    "tsx": "web/tsx",
+    "jsx": "web/jsx",
+    "json": "data",
+    "yml": ".github",
+    "yaml": ".github",
+    "html": "web",
+    "css": "web/css",
+    "sh": "scripts",
+    "md": "docs",
+}
+
+EXT_BY_LANG = {
+    "python": "py",
+    "py": "py",
+    "javascript": "js",
+    "js": "js",
+    "typescript": "ts",
+    "ts": "ts",
+    "tsx": "tsx",
+    "jsx": "jsx",
+    "json": "json",
+    "yaml": "yaml",
+    "yml": "yml",
+    "markdown": "md",
+    "md": "md",
+    "html": "html",
+    "css": "css",
+    "bash": "sh",
+    "sh": "sh",
+    "dockerfile": "Dockerfile",
+}
+
+def gh(path):
+    r = requests.get(f"{API}/repos/{REPO}/{path}", headers={
+        "Authorization": f"Bearer {TOKEN}",
+        "Accept": "application/vnd.github+json",
+    })
+    r.raise_for_status()
+    return r.json()
+
+def get_issue_body():
+    data = gh(f"issues/{ISSUE_NUMBER}")
+    return data.get("body") or ""
+
+def guess_path(lang:str, idx:int):
+    ext = EXT_BY_LANG.get(lang.lower(), "txt")
+    if ext == "Dockerfile":
+        return f"docker/Dockerfile"
+    base = LANG_DEFAULTS.get(ext, "misc")
+    return f"{base}/snippet_{ISSUE_NUMBER}_{idx}.{ext}"
+
+def write_file(path, code):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(code)
+
+def format_file(path):
+    ext = pathlib.Path(path).suffix.lower()
+    try:
+        if ext == ".py":
+            subprocess.run(["isort", path], check=False)
+            subprocess.run(["black", path], check=False)
+        elif ext in (".js", ".ts", ".tsx", ".jsx", ".json", ".css", ".md", ".html", ".yaml", ".yml"):
+            subprocess.run(["prettier", "-w", path], check=False)
+        elif ext == ".sh":
+            subprocess.run(["shfmt", "-w", path], check=False)
+    except Exception:
+        pass
+
+def main():
+    body = get_issue_body()
+    if not body.strip():
+        print("Issue has no body; nothing to ingest.")
+        return
+
+    # create/update branch
+    subprocess.run(["git", "checkout", "-B", HEAD_BRANCH], check=True)
+
+    count = 0
+    for i, m in enumerate(FENCE.finditer(body), start=1):
+        hdr = m.group("hdr") or ""
+        lang = (m.group("lang") or "").strip() or "txt"
+        code = m.group("code")
+        path = None
+        if hdr:
+            mh = FILE_HDR.search(hdr)
+            if mh:
+                path = mh.group("path").strip()
+        if not path:
+            path = guess_path(lang, i)
+
+        # normalize path
+        path = path.replace("\r", "").strip()
+        # write & format
+        write_file(path, code)
+        format_file(path)
+        subprocess.run(["git", "add", path], check=True)
+        print(f"Wrote {path} ({len(code)} bytes)")
+        count += 1
+
+    if count == 0:
+        print("No code fences found. Use <!-- FILE: path --> above a ```lang fence.")
+        return
+
+    msg = f"ingest: {count} file(s) from issue #{ISSUE_NUMBER} [skip ci]"
+    subprocess.run(["git", "commit", "-m", msg], check=False)
+    subprocess.run(["git", "push", "-u", "origin", HEAD_BRANCH], check=True)
+
+if __name__ == "__main__":
+    main()
