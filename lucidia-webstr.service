@@ -1,0 +1,16 @@
+<!-- FILE: webstr/systemd/lucidia-webstr.service -->
+[Unit]
+Description=Lucidia Webstr (paste -> PR helper)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/blackroad/webstr
+EnvironmentFile=/var/www/blackroad/webstr/.env
+ExecStart=/var/www/blackroad/webstr/.venv/bin/uvicorn server:app --host 0.0.0.0 --port ${PORT}
+Restart=always
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target
