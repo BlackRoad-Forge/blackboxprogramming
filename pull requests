@@ -1,0 +1,275 @@
+git checkout -b agentless-ops
+# Create the directories and paste in the files I gave you
+mkdir -p .github/workflows tools .blackroad
+# ...paste each file into its path...
+
+git add .
+git commit -m "feat: add agentless ops workflow + tools"
+git push -u origin agentless-ops
+
+# FILE: .github/workflows/ops.yml
+name: BlackRoad Ops (Agentless)
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "What should the ops runner do? (e.g., issues:sync, plan:security, run:script tools/autopush.sh)"
+        required: true
+        default: "issues:sync"
+      ref:
+        description: "Git ref to checkout (branch or tag)"
+        required: false
+        default: "main"
+  schedule:
+    - cron: "*/30 * * * *"  # every 30 minutes keep things tidy (safe to disable)
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  ops:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps (if present)
+        run: |
+          set -e
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install requests pyyaml
+
+      - name: Run task switchboard
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TASK: ${{ github.event.inputs.task }}
+        run: |
+          set -euo pipefail
+          echo "Task: ${TASK}"
+          case "${TASK}" in
+            issues:sync)
+              python tools/issue_sync.py
+              ;;
+            run:script\ *)
+              # Example: run:script tools/autopush.sh
+              SCRIPT="${TASK#run:script }"
+              echo "Running script ${SCRIPT}"
+              chmod +x "${SCRIPT}"
+              "${SCRIPT}"
+              ;;
+            *)
+              echo "Unknown task '${TASK}'. Supported: issues:sync, run:script <path>"
+              exit 1
+              ;;
+          esac
+
+      - name: Commit any repo changes (if any)
+        run: |
+          set -e
+          if ! git diff --quiet; then
+            git config user.name "blackroad-ops"
+            git config user.email "ops@users.noreply.github.com"
+            git add -A
+            git commit -m "ops: automated update from workflow ${GITHUB_RUN_ID}"
+            git push
+          else
+            echo "No changes to commit."
+          fi
+
+# FILE: tools/issue_sync.py
+import os, json, requests, sys
+from typing import List, Dict
+
+MANIFEST_PATHS = [
+    ".blackroad/issue-manifest.json",
+    "blackroad-plans/.blackroad/issue-manifest.json",
+]
+
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+REPO = os.getenv("GH_REPO")  # e.g., "blackboxprogramming/blackboxprogramming"
+
+API = "https://api.github.com"
+
+def load_manifest() -> Dict:
+    for p in MANIFEST_PATHS:
+        if os.path.exists(p):
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+    print("No manifest found; skipping.", file=sys.stderr)
+    return {}
+
+def gh(headers, method, url, **kw):
+    r = requests.request(method, url, headers=headers, **kw)
+    if r.status_code >= 300:
+        raise RuntimeError(f"GitHub API error {r.status_code}: {r.text}")
+    return r.json()
+
+def get_existing_titles(headers) -> Dict[str,int]:
+    titles = {}
+    page = 1
+    while True:
+        r = requests.get(f"{API}/repos/{REPO}/issues?state=open&per_page=100&page={page}", headers=headers)
+        if r.status_code != 200:
+            raise RuntimeError(r.text)
+        items = r.json()
+        if not items:
+            break
+        for it in items:
+            if "pull_request" in it:  # skip PRs
+                continue
+            titles[it["title"].strip()] = it["number"]
+        page += 1
+    return titles
+
+def ensure_issues(headers, issues: List[str], assignee: str|None):
+    existing = get_existing_titles(headers)
+    created, skipped = [], []
+    for title in issues:
+        t = title.strip()
+        if t in existing:
+            skipped.append(t)
+            continue
+        payload = {"title": t}
+        if assignee:
+            payload["assignees"] = [assignee]
+        data = gh(headers, "POST", f"{API}/repos/{REPO}/issues", json=payload)
+        created.append(data["html_url"])
+    return created, skipped
+
+def main():
+    if not GITHUB_TOKEN or not REPO:
+        print("Missing GITHUB_TOKEN or GH_REPO", file=sys.stderr); sys.exit(0)
+
+    headers = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"}
+    manifest = load_manifest()
+    if not manifest:
+        print("No manifest; done."); return
+
+    issues = manifest.get("issues", [])
+    assignee = manifest.get("assignee")
+    created, skipped = ensure_issues(headers, issues, assignee)
+    print(f"Created: {len(created)} | Skipped (already present): {len(skipped)}")
+    if created:
+        for url in created:
+            print(f" - {url}")
+
+if __name__ == "__main__":
+    main()
+
+// FILE: .blackroad/issue-manifest.json
+{
+  "assignee": "blackboxprogramming",
+  "issues": [
+    "Security: enable Dependabot, secret scanning, and CodeQL",
+    "Create Ops README with standard runbooks",
+    "Set up RoadView pipeline stub and tracking issue",
+    "Backfill CI for lint/tests on main",
+    "Add login gate + route placeholders for all portals"
+  ]
+}
+
+# FILE: tools/autopush.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_DIR="${REPO_DIR:-$(pwd)}"
+REMOTE_URL="${REMOTE_URL:-git@github.com:blackboxprogramming/blackboxprogramming.git}"
+BRANCH="${BRANCH:-main}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
+
+# Known host fingerprints you shared previously
+declare -A HOST_FP=(
+  ["github.com"]="SHA256:p2QAMXNIC1TJYWeIOttrVc98/R1BUFWu3/LiyKgUfQM="
+  ["gitlab.com"]="SHA256:HbW3g8zUjNSksFbqTiUWPWg2Bq1x8xdGUrliXFzSnUw="
+  ["bitbucket.org"]="SHA256:FC73VB6C4OQLSCrjEayhMp9UMxS97caD/Yyi2bhW/J0="
+)
+
+ensure_known_host () {
+  local host=$1 fp_expected=$2
+  mkdir -p "$HOME/.ssh"
+  touch "$HOME/.ssh/known_hosts"
+  chmod 600 "$HOME/.ssh/known_hosts"
+  if ! ssh-keygen -F "$host" >/dev/null 2>&1; then
+    ssh-keyscan -t rsa,ecdsa,ed25519 "$host" >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
+  fi
+  local fp
+  fp=$(ssh-keygen -lf <(ssh-keyscan -t rsa,ecdsa,ed25519 "$host" 2>/dev/null | awk '{print $3" "$4" "$5}'))
+  if [[ "$fp" != *"$fp_expected"* ]]; then
+    echo "Fingerprint mismatch for $host"; exit 1
+  fi
+}
+
+host=$(echo "$REMOTE_URL" | awk -F'[@:]' '{print $2}')
+[ -n "${HOST_FP[$host]:-}" ] && ensure_known_host "$host" "${HOST_FP[$host]}"
+
+if [ -f "$SSH_KEY" ]; then
+  eval "$(ssh-agent -s)"
+  ssh-add "$SSH_KEY"
+fi
+
+cd "$REPO_DIR"
+git remote set-url origin "$REMOTE_URL" || git remote add origin "$REMOTE_URL" || true
+git fetch origin || true
+git checkout -B "$BRANCH"
+git add -A
+git commit -m "autopush: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No changes to commit."
+for i in {1..5}; do
+  if git push -u origin "$BRANCH"; then
+    echo "Push ok."; exit 0
+  fi
+  echo "Retry $i…"; sleep $((i*2))
+done
+echo "Push failed after retries."; exit 1
+
+# FILE: .github/ISSUE_TEMPLATE/plan.md
+name: Plan / Task
+description: Add a new plan item or technical task
+title: "[Plan] "
+labels: ["plan", "todo"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What problem or goal is this addressing?
+  - type: textarea
+    id: deliverables
+    attributes:
+      label: Deliverables
+      description: Checklists, files, or endpoints to create
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: How will we know it's done?
+
+# FILE: Makefile
+.PHONY: ops issues autopush
+
+ops:
+	@echo "Use: make issues | make autopush"
+
+issues:
+	@echo "Running issue sync locally…"
+	python3 tools/issue_sync.py
+
+autopush:
+	@echo "Pushing with safe autopush…"
+	bash tools/autopush.sh
+
+# FILE: .env.example
+# Copy to .env and fill locally/runner-side (never commit real secrets)
+GITHUB_REPO=blackboxprogramming/blackboxprogramming
+DEPLOY_SSH_KEY_PATH=~/.ssh/id_ed25519
