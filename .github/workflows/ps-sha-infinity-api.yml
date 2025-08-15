@@ -1,0 +1,19 @@
+name: PS-SHA∞ API CI
+on:
+  push:
+    paths:
+      - "services/**"
+      - ".github/workflows/ps-sha-infinity-api.yml"
+  pull_request:
+    paths:
+      - "services/**"
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r services/requirements.txt
+      - run: python -c "import ps_sha_infinity_core as m; print(m.ps_sha_infinity({'hello':'world'}, 'salt')['hash_hex'][:16])"
+      - run: python -c "import hashlib; import sys; print('CI ok')"
