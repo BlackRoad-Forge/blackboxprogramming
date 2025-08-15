@@ -1,0 +1,3 @@
+[submodule "lucidia"]
+	path = lucidia
+	url = git@github.com:blackboxprogramming/lucidia.git
