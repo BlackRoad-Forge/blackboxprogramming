@@ -1,13 +1,14 @@
-<!-- FILE: webstr/server.py -->
+# FILE: webstr/server.py
 import os
 import pathlib
 from typing import List
+
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
-import httpx
 
 ROOT = pathlib.Path(__file__).resolve().parent
 WEB = ROOT / "web"
@@ -17,12 +18,15 @@ app = FastAPI(title="Lucidia Webstr", version="1.0")
 # CORS: allow browser use from anywhere (tighten later if you want)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True,
-    allow_methods=["*"], allow_headers=["*"]
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # serve static UI
 app.mount("/static", StaticFiles(directory=str(WEB)), name="static")
+
 
 class IngestRequest(BaseModel):
     repo: str  # e.g. "blackboxprogramming/blackboxprogramming"
@@ -37,9 +41,11 @@ class IngestRequest(BaseModel):
             raise ValueError("repo must look like owner/name")
         return v
 
+
 @app.get("/health")
 async def health():
     return {"ok": True}
+
 
 @app.get("/")
 async def index():
@@ -47,6 +53,12 @@ async def index():
     if not index_path.exists():
         return JSONResponse({"error": "index.html missing"}, status_code=500)
     return FileResponse(index_path)
+
+
+@app.get("/hello", response_class=PlainTextResponse)
+async def hello():
+    return "Hello, world!"
+
 
 @app.post("/api/ingest")
 async def api_ingest(payload: IngestRequest):
@@ -73,7 +85,9 @@ async def api_ingest(payload: IngestRequest):
     js = r.json()
     return {"number": js.get("number"), "url": js.get("html_url")}
 
+
 if __name__ == "__main__":
     import uvicorn
+
     port = int(os.getenv("PORT", "7860"))
     uvicorn.run("server:app", host="0.0.0.0", port=port, reload=True)
