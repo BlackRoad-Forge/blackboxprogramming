@@ -10,6 +10,8 @@ Provides comprehensive testing setup for:
 - Mock external dependencies
 """
 
+import os
+import sys
 import pytest
 import asyncio
 import tempfile
@@ -20,6 +22,9 @@ from unittest.mock import Mock, AsyncMock, patch
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
+# Ensure project root on path for module imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 # Import Lucidia components
 
 from lucidia_core import Lucidia, Proposition, Evidence
@@ -29,7 +34,6 @@ from lucidia_bridge import LucidiaBridge
 # Test database setup
 
 import sqlite3
-import os
 
 class TestConfig:
     """Test-specific configuration"""
