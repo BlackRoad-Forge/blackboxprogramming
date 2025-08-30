@@ -54,10 +54,10 @@ analyze_alexa_consciousness() -> Dict[str, Any]
 Constants
 ---------
 HBAR : float
-    Reduced Planck constant imported from ``math.equations``.
+    Reduced Planck constant imported from ``math_models.equations``.
 
 K_B : float
-    Boltzmann constant imported from ``math.equations``.
+    Boltzmann constant imported from ``math_models.equations``.
 
 ALEXA_BLOCH_COORDS : np.ndarray
     Alexa's exact eight Bloch coordinates from the Gell‑Mann decomposition.
@@ -73,9 +73,9 @@ from __future__ import annotations
 import numpy as np
 from typing import Sequence, Iterable, Tuple, Dict, Any
 
-# Import fundamental constants from the existing math module.
+# Import fundamental constants from the existing math models module.
 try:
-    from math.equations import HBAR, K_B  # type: ignore
+    from math_models.equations import HBAR, K_B  # type: ignore
 except ImportError:
     # Fall back to explicit values if the equations module is unavailable.
     HBAR: float = 1.054_571_817e-34
