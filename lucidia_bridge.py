@@ -8,7 +8,7 @@ events.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Dict, List
 
 from fastapi import FastAPI
@@ -39,7 +39,7 @@ class LucidiaBridge:
                 "status": "healthy",
                 "lucidia_identity": self.lucidia.identity.current_hash,
                 "active_agents": len(self.active_agents),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
         @app.post("/agent/register")
@@ -53,7 +53,7 @@ class LucidiaBridge:
                 "type": agent["agent_type"],
                 "capabilities": agent.get("capabilities", []),
                 "status": "active",
-                "registered_at": datetime.utcnow().isoformat(),
+                "registered_at": datetime.now(UTC).isoformat(),
             }
             return {
                 "status": "registered",
@@ -67,9 +67,9 @@ class LucidiaBridge:
                 return JSONResponse({"error": "agent_not_registered"}, status_code=404)
             metrics = data.get("metrics", {})
             self.agent_metrics.setdefault(agent_id, {}).update(metrics)
-            self.active_agents[agent_id][
-                "last_heartbeat"
-            ] = datetime.utcnow().isoformat()
+            self.active_agents[agent_id]["last_heartbeat"] = datetime.now(
+                UTC
+            ).isoformat()
             return {"status": "heartbeat_received"}
 
         @app.post("/knowledge/learn")
@@ -87,7 +87,7 @@ class LucidiaBridge:
             except Exception as exc:  # pragma: no cover - exercised in tests
                 return JSONResponse({"error": str(exc)}, status_code=500)
             event = {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "agent_id": data.get("agent_id", ""),
                 "content_hash": res["content_hash"],
                 "confidence": data.get("confidence"),
