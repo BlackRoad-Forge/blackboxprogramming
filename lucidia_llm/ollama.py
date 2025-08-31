@@ -54,8 +54,9 @@ class OllamaLLM:
             "model": self.model,
             "prompt": prompt,
             "stream": False,
-            "options": options,
         }
+        if options is not None:
+            payload["options"] = options
         url = f"{self.base_url}/api/generate"
         try:
             response = requests.post(url, json=payload, timeout=self.timeout)
