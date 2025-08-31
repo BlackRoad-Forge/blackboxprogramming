@@ -7,8 +7,10 @@ experimentation within the Lucidia project.
 
 from __future__ import annotations
 
-import requests
+from json import JSONDecodeError
 from typing import Any, Dict, Optional
+
+import requests
 
 
 class OllamaLLM:
@@ -48,6 +50,11 @@ class OllamaLLM:
         -------
         str
             The generated text from the model.
+
+        Raises
+        ------
+        RuntimeError
+            If the request fails or the response cannot be decoded.
         """
 
         payload = {
@@ -64,5 +71,9 @@ class OllamaLLM:
         except requests.RequestException as exc:  # pragma: no cover - network failure
             raise RuntimeError(f"Ollama request failed: {exc}") from exc
 
-        data = response.json()
+        try:
+            data = response.json()
+        except (ValueError, JSONDecodeError) as exc:
+            raise RuntimeError("Ollama response could not be decoded as JSON") from exc
+
         return data.get("response", "")
