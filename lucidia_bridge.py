@@ -18,9 +18,10 @@ class LucidiaBridge:
 
         @self.app.get("/health")
         def health() -> Dict[str, Any]:
+            identity = getattr(self.lucidia, "identity", None)
             return {
                 "status": "healthy",
-                "lucidia_identity": getattr(self.lucidia.identity, "current_hash", ""),
+                "lucidia_identity": getattr(identity, "current_hash", ""),
                 "active_agents": len(self.active_agents),
                 "timestamp": datetime.utcnow().isoformat(),
             }
@@ -39,10 +40,11 @@ class LucidiaBridge:
                 "status": "active",
                 "registered_at": datetime.utcnow().isoformat(),
             }
+            identity = getattr(self.lucidia, "identity", None)
             return {
                 "status": "registered",
                 "agent_id": agent_id,
-                "lucidia_identity": getattr(self.lucidia.identity, "current_hash", ""),
+                "lucidia_identity": getattr(identity, "current_hash", ""),
             }
 
         @self.app.post("/agent/{agent_id}/heartbeat")
@@ -52,7 +54,9 @@ class LucidiaBridge:
                     status_code=404,
                     content={"error": "agent_not_registered"},
                 )
-            self.active_agents[agent_id]["last_heartbeat"] = datetime.utcnow().isoformat()
+            self.active_agents[agent_id][
+                "last_heartbeat"
+            ] = datetime.utcnow().isoformat()
             metrics = payload.get("metrics", {})
             self.agent_metrics.setdefault(agent_id, {}).update(metrics)
             return {"status": "heartbeat_received"}
@@ -61,16 +65,20 @@ class LucidiaBridge:
         def learn(data: Dict[str, Any]) -> Dict[str, Any]:
             content = data.get("content")
             if content is None:
-                return JSONResponse(status_code=400, content={"error": "content required"})
+                return JSONResponse(
+                    status_code=400, content={"error": "content required"}
+                )
             try:
                 result = self.lucidia.learn(
                     prop_type=data.get("type"),
                     content=content,
                     confidence=data.get("confidence", 0.0),
                     context=data.get("metadata", {}).get("context", {}),
-                    evidence=data.get("metadata", {}).get("evidence", [])
-                    if isinstance(data.get("metadata"), dict)
-                    else [],
+                    evidence=(
+                        data.get("metadata", {}).get("evidence", [])
+                        if isinstance(data.get("metadata"), dict)
+                        else []
+                    ),
                 )
             except Exception as exc:  # pragma: no cover - simple error pass-through
                 return JSONResponse(status_code=500, content={"error": str(exc)})
@@ -126,7 +134,9 @@ class LucidiaBridge:
                     serialized.append(
                         {
                             "id": getattr(c, "id", None),
-                            "facts": [getattr(f, "id", None) for f in getattr(c, "facts", [])],
+                            "facts": [
+                                getattr(f, "id", None) for f in getattr(c, "facts", [])
+                            ],
                             "confidence": getattr(c, "confidence", None),
                             "status": getattr(c, "status", None),
                             "discovered_at": getattr(c, "discovered_at", None),
@@ -151,13 +161,15 @@ class LucidiaBridge:
 
         @self.app.get("/identity/current")
         def identity_current() -> Dict[str, Any]:
-            identity = self.lucidia.identity
+            identity = getattr(self.lucidia, "identity", None)
             return {
                 "current_hash": getattr(identity, "current_hash", ""),
                 "chain_length": len(getattr(identity, "chain", [])),
-                "continuity_events": identity.get_continuity_events()
-                if hasattr(identity, "get_continuity_events")
-                else [],
+                "continuity_events": (
+                    identity.get_continuity_events()
+                    if hasattr(identity, "get_continuity_events")
+                    else []
+                ),
             }
 
         @self.app.get("/telemetry/agents")
@@ -168,6 +180,7 @@ class LucidiaBridge:
                 else 0
             )
             contradictions = self.lucidia.get_contradictions()
+            identity = getattr(self.lucidia, "identity", None)
             return {
                 "active_agents": self.active_agents,
                 "agent_metrics": self.agent_metrics,
@@ -175,6 +188,6 @@ class LucidiaBridge:
                 "system_stats": {
                     "total_facts": total_facts,
                     "active_contradictions": len(contradictions),
-                    "identity_chain_length": len(getattr(self.lucidia.identity, "chain", [])),
+                    "identity_chain_length": len(getattr(identity, "chain", [])),
                 },
             }
