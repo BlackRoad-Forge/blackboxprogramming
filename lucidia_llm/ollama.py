@@ -48,6 +48,11 @@ class OllamaLLM:
         -------
         str
             The generated text from the model.
+
+        Raises
+        ------
+        RuntimeError
+            If the request fails or the response cannot be decoded.
         """
 
         payload = {
@@ -61,8 +66,10 @@ class OllamaLLM:
         try:
             response = requests.post(url, json=payload, timeout=self.timeout)
             response.raise_for_status()
+            data = response.json()
         except requests.RequestException as exc:  # pragma: no cover - network failure
             raise RuntimeError(f"Ollama request failed: {exc}") from exc
+        except ValueError as exc:
+            raise RuntimeError(f"Invalid response from Ollama: {exc}") from exc
 
-        data = response.json()
         return data.get("response", "")

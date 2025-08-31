@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from lucidia_llm import OllamaLLM
 
@@ -8,7 +8,7 @@ def test_generate_calls_ollama_correctly():
     client = OllamaLLM(model="test-model", base_url="http://example.com")
     mock_response = {"response": "Hello"}
 
-    with patch("requests.post") as mock_post:
+    with patch("lucidia_llm.ollama.requests.post") as mock_post:
         mock_post.return_value.json.return_value = mock_response
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -22,6 +22,7 @@ def test_generate_calls_ollama_correctly():
         )
         assert result == "Hello"
 
+    
 
 def test_generate_includes_options_when_provided():
     client = OllamaLLM(model="test-model", base_url="http://example.com")
@@ -47,6 +48,20 @@ def test_generate_handles_request_errors():
     client = OllamaLLM()
     import requests
 
-    with patch("requests.post", side_effect=requests.RequestException("boom")):
+    with patch(
+        "lucidia_llm.ollama.requests.post",
+        side_effect=requests.RequestException("boom"),
+    ):
         with pytest.raises(RuntimeError):
             client.generate("Hi")
+
+
+def test_generate_handles_invalid_json():
+    client = OllamaLLM()
+    mock_resp = Mock()
+    mock_resp.raise_for_status.return_value = None
+    mock_resp.json.side_effect = ValueError("bad json")
+
+    with patch("lucidia_llm.ollama.requests.post", return_value=mock_resp):
+        with pytest.raises(RuntimeError):
+            client.generate("Hello")
