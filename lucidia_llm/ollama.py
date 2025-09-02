@@ -68,7 +68,7 @@ class OllamaLLM:
             response = requests.post(url, json=payload, timeout=self.timeout)
             response.raise_for_status()
             data = response.json()
-        except requests.RequestException as exc:  # pragma: no cover
+        except requests.RequestException as exc:
             raise RuntimeError(f"Ollama request failed: {exc}") from exc
         except ValueError as exc:
             raise RuntimeError(f"Invalid response from Ollama: {exc}") from exc
