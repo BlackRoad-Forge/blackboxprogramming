@@ -67,9 +67,8 @@ class LucidiaBridge:
                 return JSONResponse({"error": "agent_not_registered"}, status_code=404)
             metrics = data.get("metrics", {})
             self.agent_metrics.setdefault(agent_id, {}).update(metrics)
-            self.active_agents[agent_id]["last_heartbeat"] = datetime.now(
-                tz=UTC
-            ).isoformat()
+            heartbeat_ts = datetime.now(tz=UTC).isoformat()
+            self.active_agents[agent_id]["last_heartbeat"] = heartbeat_ts
             return {"status": "heartbeat_received"}
 
         @app.post("/knowledge/learn")
