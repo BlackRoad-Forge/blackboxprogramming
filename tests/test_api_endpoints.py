@@ -1,19 +1,6 @@
-"""
-Comprehensive tests for Lucidia Bridge API endpoints.
+"""Comprehensive tests for Lucidia Bridge API endpoints."""
 
-Tests all FastAPI endpoints including:
-- Health checks
-- Agent registration and management
-- Knowledge operations (learn, query, update)
-- Contradiction management
-- Identity operations
-- Telemetry
-"""
-
-import pytest
-import json
 from unittest.mock import Mock, patch
-from fastapi.testclient import TestClient
 
 
 class TestHealthEndpoint:
@@ -39,6 +26,7 @@ class TestHealthEndpoint:
 
         # Verify timestamp format
         from datetime import datetime
+
         timestamp = datetime.fromisoformat(data["timestamp"])
         assert timestamp is not None
 
@@ -54,7 +42,7 @@ class TestAgentManagement:
         agent_data = {
             "agent_id": "test-curator-123",
             "agent_type": "Curator",
-            "capabilities": ["learning", "deduplication", "evidence-merging"]
+            "capabilities": ["learning", "deduplication", "evidence-merging"],
         }
 
         response = test_client.post("/agent/register", json=agent_data)
@@ -69,27 +57,23 @@ class TestAgentManagement:
     def test_agent_registration_missing_fields(self, test_client):
         """Test agent registration with missing required fields."""
         # Missing agent_type
-        response = test_client.post("/agent/register", json={
-            "agent_id": "test-agent"
-        })
+        response = test_client.post("/agent/register", json={"agent_id": "test-agent"})
 
         assert response.status_code == 400
         assert "agent_id and agent_type required" in response.json()["error"]
 
         # Missing agent_id
-        response = test_client.post("/agent/register", json={
-            "agent_type": "Curator"
-        })
+        response = test_client.post("/agent/register", json={"agent_type": "Curator"})
 
         assert response.status_code == 400
 
-    def test_agent_heartbeat_success(self, test_client):
+    def test_agent_heartbeat_success(self, test_client, lucidia_bridge):
         """Test successful agent heartbeat."""
         # First register agent
         agent_data = {
             "agent_id": "test-agent-heartbeat",
             "agent_type": "Analyzer",
-            "capabilities": ["analysis"]
+            "capabilities": ["analysis"],
         }
         test_client.post("/agent/register", json=agent_data)
 
@@ -97,23 +81,27 @@ class TestAgentManagement:
         heartbeat_data = {
             "metrics": {
                 "analysis_runs": 5,
-                "quality_score": 0.85
+                "quality_score": 0.85,
             }
         }
 
         response = test_client.post(
             f"/agent/{agent_data['agent_id']}/heartbeat",
-            json=heartbeat_data
+            json=heartbeat_data,
         )
 
         assert response.status_code == 200
-        assert response.json()["status"] == "heartbeat_received"
+        data = response.json()
+        assert data["status"] == "heartbeat_received"
+        assert data["agent_id"] == agent_data["agent_id"]
+        assert data["lucidia_identity"] == lucidia_bridge.lucidia.identity.current_hash
+        assert data["metrics"] == heartbeat_data["metrics"]
+        assert "timestamp" in data
 
     def test_agent_heartbeat_unregistered(self, test_client):
         """Test heartbeat from unregistered agent."""
         response = test_client.post(
-            "/agent/nonexistent-agent/heartbeat",
-            json={"metrics": {}}
+            "/agent/nonexistent-agent/heartbeat", json={"metrics": {}}
         )
 
         assert response.status_code == 404
@@ -131,16 +119,13 @@ class TestKnowledgeOperations:
             "confidence": 0.95,
             "metadata": {
                 "source": "geography_textbook",
-                "context": {"domain": "geography"}
+                "context": {"domain": "geography"},
             },
-            "agent_id": "test-curator"
+            "agent_id": "test-curator",
         }
 
-        with patch.object(lucidia_core, 'learn') as mock_learn:
-            mock_learn.return_value = {
-                "content_hash": "abc123",
-                "fact_id": "fact_456"
-            }
+        with patch.object(lucidia_core, "learn") as mock_learn:
+            mock_learn.return_value = {"content_hash": "abc123", "fact_id": "fact_456"}
 
             response = test_client.post("/knowledge/learn", json=proposition_data)
 
@@ -161,21 +146,16 @@ class TestKnowledgeOperations:
 
     def test_learn_proposition_missing_content(self, test_client):
         """Test learning with missing content."""
-        response = test_client.post("/knowledge/learn", json={
-            "type": "assertion",
-            "confidence": 0.8
-        })
+        response = test_client.post(
+            "/knowledge/learn", json={"type": "assertion", "confidence": 0.8}
+        )
 
         assert response.status_code == 400
         assert "content required" in response.json()["error"]
 
     def test_query_knowledge_success(self, test_client, lucidia_core):
         """Test successful knowledge querying."""
-        query_data = {
-            "content": "France",
-            "confidence": {"min": 0.5},
-            "limit": 10
-        }
+        query_data = {"content": "France", "confidence": {"min": 0.5}, "limit": 10}
 
         mock_results = {
             "results": [
@@ -192,14 +172,14 @@ class TestKnowledgeOperations:
                             "source": "atlas",
                             "weight": 0.95,
                             "timestamp": "2024-01-01T12:00:00",
-                            "metadata": {"page": 42}
+                            "metadata": {"page": 42},
                         }
-                    ]
+                    ],
                 }
             ]
         }
 
-        with patch.object(lucidia_core, 'query') as mock_query:
+        with patch.object(lucidia_core, "query") as mock_query:
             mock_query.return_value = mock_results
 
             response = test_client.post("/knowledge/query", json=query_data)
@@ -225,11 +205,13 @@ class TestKnowledgeOperations:
         update_data = {
             "fact_id": "fact_123",
             "confidence": 0.85,
-            "agent_id": "test-analyzer"
+            "agent_id": "test-analyzer",
         }
 
-        with patch.object(lucidia_core, 'update_confidence') as mock_update:
-            response = test_client.post("/knowledge/update_confidence", json=update_data)
+        with patch.object(lucidia_core, "update_confidence") as mock_update:
+            response = test_client.post(
+                "/knowledge/update_confidence", json=update_data
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -242,9 +224,9 @@ class TestKnowledgeOperations:
 
     def test_update_confidence_missing_fields(self, test_client):
         """Test confidence update with missing fields."""
-        response = test_client.post("/knowledge/update_confidence", json={
-            "fact_id": "fact_123"
-        })
+        response = test_client.post(
+            "/knowledge/update_confidence", json={"fact_id": "fact_123"}
+        )
 
         assert response.status_code == 400
         assert "fact_id and confidence required" in response.json()["error"]
@@ -262,14 +244,14 @@ class TestContradictionManagement:
                 confidence=0.8,
                 status="active",
                 discovered_at="2024-01-01T12:00:00",
-                metadata={"analysis_method": "semantic_similarity"}
+                metadata={"analysis_method": "semantic_similarity"},
             )
         ]
 
         # Convert Mock to dict for JSON serialization
         mock_contradictions[0].discovered_at = "2024-01-01T12:00:00"
 
-        with patch.object(lucidia_core, 'get_contradictions') as mock_get:
+        with patch.object(lucidia_core, "get_contradictions") as mock_get:
             mock_get.return_value = mock_contradictions
 
             response = test_client.get("/knowledge/contradictions")
@@ -293,19 +275,18 @@ class TestContradictionManagement:
             "proposition": {
                 "type": "assertion",
                 "content": "The capital of France is Lyon",
-                "confidence": 0.6
+                "confidence": 0.6,
             },
             "conflicting_facts": ["fact_123", "fact_456"],
-            "metadata": {
-                "detection_method": "curator_agent",
-                "conflict_strength": 0.9
-            }
+            "metadata": {"detection_method": "curator_agent", "conflict_strength": 0.9},
         }
 
-        with patch.object(lucidia_core, 'quarantine_contradiction') as mock_quarantine:
+        with patch.object(lucidia_core, "quarantine_contradiction") as mock_quarantine:
             mock_quarantine.return_value = {"contradiction_id": "new_contradiction_789"}
 
-            response = test_client.post("/knowledge/quarantine_contradiction", json=quarantine_data)
+            response = test_client.post(
+                "/knowledge/quarantine_contradiction", json=quarantine_data
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -317,9 +298,10 @@ class TestContradictionManagement:
 
     def test_quarantine_contradiction_missing_fields(self, test_client):
         """Test quarantine with missing required fields."""
-        response = test_client.post("/knowledge/quarantine_contradiction", json={
-            "proposition": {"content": "test"}
-        })
+        response = test_client.post(
+            "/knowledge/quarantine_contradiction",
+            json={"proposition": {"content": "test"}},
+        )
 
         assert response.status_code == 400
         assert "proposition and conflicting_facts required" in response.json()["error"]
@@ -332,7 +314,7 @@ class TestIdentityOperations:
         """Test successful identity retrieval."""
         mock_ps_sha_infinity.get_continuity_events.return_value = [
             {"event": "system_start", "timestamp": "2024-01-01T00:00:00"},
-            {"event": "learning_session", "timestamp": "2024-01-01T12:00:00"}
+            {"event": "learning_session", "timestamp": "2024-01-01T12:00:00"},
         ]
 
         response = test_client.get("/identity/current")
@@ -359,15 +341,12 @@ class TestTelemetryOperations:
                 "type": "Curator",
                 "status": "active",
                 "registered_at": "2024-01-01T12:00:00",
-                "last_heartbeat": "2024-01-01T12:30:00"
+                "last_heartbeat": "2024-01-01T12:30:00",
             }
         }
 
         lucidia_bridge.agent_metrics = {
-            "test-agent-1": {
-                "facts_learned": 25,
-                "quality_score": 0.87
-            }
+            "test-agent-1": {"facts_learned": 25, "quality_score": 0.87}
         }
 
         lucidia_bridge.learning_events = [
@@ -376,12 +355,15 @@ class TestTelemetryOperations:
                 "agent_id": "test-agent-1",
                 "content_hash": "hash_123",
                 "confidence": 0.9,
-                "type": "assertion"
+                "type": "assertion",
             }
         ]
 
-        with patch.object(lucidia_bridge.lucidia, 'get_fact_count') as mock_count, \
-             patch.object(lucidia_bridge.lucidia, 'get_contradictions') as mock_contradictions:
+        with patch.object(
+            lucidia_bridge.lucidia, "get_fact_count"
+        ) as mock_count, patch.object(
+            lucidia_bridge.lucidia, "get_contradictions"
+        ) as mock_contradictions:
 
             mock_count.return_value = 150
             mock_contradictions.return_value = []
@@ -414,21 +396,24 @@ class TestErrorHandling:
         response = test_client.post(
             "/knowledge/learn",
             data="invalid json",
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 422  # FastAPI validation error
 
     def test_database_error_handling(self, test_client, lucidia_core):
         """Test handling of database errors."""
-        with patch.object(lucidia_core, 'learn') as mock_learn:
+        with patch.object(lucidia_core, "learn") as mock_learn:
             mock_learn.side_effect = Exception("Database connection failed")
 
-            response = test_client.post("/knowledge/learn", json={
-                "type": "assertion",
-                "content": "Test content",
-                "confidence": 0.8
-            })
+            response = test_client.post(
+                "/knowledge/learn",
+                json={
+                    "type": "assertion",
+                    "content": "Test content",
+                    "confidence": 0.8,
+                },
+            )
 
             assert response.status_code == 500
             assert "error" in response.json()
@@ -437,11 +422,10 @@ class TestErrorHandling:
         """Test handling of very large requests."""
         large_content = "x" * 10000  # 10KB content
 
-        response = test_client.post("/knowledge/learn", json={
-            "type": "assertion",
-            "content": large_content,
-            "confidence": 0.8
-        })
+        response = test_client.post(
+            "/knowledge/learn",
+            json={"type": "assertion", "content": large_content, "confidence": 0.8},
+        )
 
         # Should handle large requests gracefully
         assert response.status_code in [200, 413, 422]  # Success or appropriate error
