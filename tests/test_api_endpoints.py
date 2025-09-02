@@ -104,6 +104,10 @@ class TestAgentManagement:
             lucidia_bridge.agent_metrics[agent_data["agent_id"]]
             is not heartbeat_data["metrics"]
         )
+        heartbeat_data["metrics"]["analysis_runs"] = 10
+        assert (
+            lucidia_bridge.agent_metrics[agent_data["agent_id"]]["analysis_runs"] == 5
+        )
         assert "timestamp" in data
         assert (
             lucidia_bridge.active_agents[agent_data["agent_id"]]["last_heartbeat"]
