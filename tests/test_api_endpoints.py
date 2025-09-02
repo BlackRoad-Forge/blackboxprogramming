@@ -97,6 +97,10 @@ class TestAgentManagement:
         assert data["lucidia_identity"] == lucidia_bridge.lucidia.identity.current_hash
         assert data["metrics"] == heartbeat_data["metrics"]
         assert "timestamp" in data
+        assert (
+            lucidia_bridge.active_agents[agent_data["agent_id"]]["last_heartbeat"]
+            == data["timestamp"]
+        )
         from datetime import datetime, timezone
 
         ts = datetime.fromisoformat(data["timestamp"])
