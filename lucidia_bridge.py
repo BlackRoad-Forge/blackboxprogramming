@@ -69,7 +69,7 @@ class LucidiaBridge:
             self.agent_metrics.setdefault(agent_id, {}).update(metrics)
             heartbeat_ts = datetime.now(tz=UTC).isoformat()
             self.active_agents[agent_id]["last_heartbeat"] = heartbeat_ts
-            return {"status": "heartbeat_received"}
+            return {"status": "heartbeat_received", "timestamp": heartbeat_ts}
 
         @app.post("/knowledge/learn")
         def learn(data: Dict[str, Any]):
