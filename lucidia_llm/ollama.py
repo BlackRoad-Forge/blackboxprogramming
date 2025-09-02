@@ -1,8 +1,6 @@
 """Lightweight interface for interacting with LLM backends.
 
-Currently supports [Ollama](https://ollama.ai) through its HTTP API.
-The interface is intentionally small to provide a simple entry point for
-experimentation within the Lucidia project.
+Currently only supports [Ollama](https://ollama.ai) through its HTTP API.
 """
 
 from __future__ import annotations
