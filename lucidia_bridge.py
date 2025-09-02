@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Dict, List
 
 from fastapi import FastAPI
@@ -23,7 +23,7 @@ class LucidiaBridge:
                 "status": "healthy",
                 "lucidia_identity": getattr(identity, "current_hash", ""),
                 "active_agents": len(self.active_agents),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
         @self.app.post("/agent/register")
@@ -38,7 +38,7 @@ class LucidiaBridge:
             self.active_agents[agent_id] = {
                 "type": agent_type,
                 "status": "active",
-                "registered_at": datetime.utcnow().isoformat(),
+                "registered_at": datetime.now(UTC).isoformat(),
             }
             identity = getattr(self.lucidia, "identity", None)
             return {
@@ -56,7 +56,7 @@ class LucidiaBridge:
                 )
             self.active_agents[agent_id][
                 "last_heartbeat"
-            ] = datetime.utcnow().isoformat()
+            ] = datetime.now(UTC).isoformat()
             metrics = payload.get("metrics", {})
             self.agent_metrics.setdefault(agent_id, {}).update(metrics)
             return {"status": "heartbeat_received"}
@@ -84,7 +84,7 @@ class LucidiaBridge:
                 return JSONResponse(status_code=500, content={"error": str(exc)})
 
             event = {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "agent_id": data.get("agent_id"),
                 "content_hash": result.get("content_hash"),
                 "confidence": data.get("confidence", 0.0),
