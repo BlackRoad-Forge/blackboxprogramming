@@ -97,6 +97,10 @@ class TestAgentManagement:
         assert data["lucidia_identity"] == lucidia_bridge.lucidia.identity.current_hash
         assert data["metrics"] == heartbeat_data["metrics"]
         assert "timestamp" in data
+        from datetime import datetime, timezone
+
+        ts = datetime.fromisoformat(data["timestamp"])
+        assert ts.tzinfo == timezone.utc
 
     def test_agent_heartbeat_unregistered(self, test_client):
         """Test heartbeat from unregistered agent."""
