@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
+import requests
 
 from lucidia_llm import OllamaLLM
 
@@ -51,7 +52,6 @@ def test_generate_includes_options_when_provided():
 
 def test_generate_handles_request_errors():
     client = OllamaLLM()
-    import requests
 
     with patch(
         "lucidia_llm.ollama.requests.post",
