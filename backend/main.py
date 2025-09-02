@@ -10,7 +10,7 @@ as a starting point for incremental development of the full Lucidia system.
 import os
 import hashlib
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import List, Optional, Dict, Any, Generator
 
 import requests
@@ -38,7 +38,7 @@ class FactORM(Base):
     content = Column(Text, nullable=False)
     confidence = Column(Float, default=1.0)
     fact_type = Column(String(50))
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     evidence = Column(JSON, nullable=True)
     context = Column(JSON, nullable=True)
 
@@ -52,7 +52,7 @@ class ReasoningTreeORM(Base):
     nodes = Column(JSON)
     conclusion = Column(JSON)
     confidence = Column(Float)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 class AgentMetricORM(Base):
@@ -61,7 +61,7 @@ class AgentMetricORM(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     agent_type = Column(String(50), nullable=False)
     metrics_data = Column(JSON)
-    timestamp = Column(DateTime(timezone=True), default=datetime.utcnow)
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 # Create tables if they do not exist
@@ -282,7 +282,7 @@ async def ask_question(req: AskRequest, db: Session = Depends(get_db)) -> AskRes
         question=question,
         answer=answer_text,
         reasoning_tree=planner_result,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(UTC),
     )
     # Broadcast the reasoning result via WebSocket
     await manager.broadcast({
@@ -306,10 +306,10 @@ def get_agent_status() -> AgentsStatusResponse:
                 name=name,
                 active=True if metrics.get("tasks_processed", 0) >= 0 else False,
                 tasks_processed=metrics.get("tasks_processed", 0),
-                last_active=datetime.utcnow(),
+                last_active=datetime.now(UTC),
             )
         )
-    return AgentsStatusResponse(agents=agents_status, timestamp=datetime.utcnow())
+    return AgentsStatusResponse(agents=agents_status, timestamp=datetime.now(UTC))
 
 
 @app.websocket("/ws/updates")
