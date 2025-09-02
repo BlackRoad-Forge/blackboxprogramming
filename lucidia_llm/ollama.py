@@ -7,7 +7,7 @@ experimentation within the Lucidia project.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 
@@ -35,7 +35,7 @@ class OllamaLLM:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
-    def generate(self, prompt: str, options: Optional[Dict[str, Any]] = None) -> str:
+    def generate(self, prompt: str, options: dict[str, Any] | None = None) -> str:
         """Generate a response from the model.
 
         Parameters
@@ -43,7 +43,7 @@ class OllamaLLM:
         prompt:
             The prompt to send to the model.
         options:
-            Optional generation parameters supported by Ollama.
+            Optional generation parameters supported by Ollama. Defaults to ``None``.
 
         Returns
         -------
