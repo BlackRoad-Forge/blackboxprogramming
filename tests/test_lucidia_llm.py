@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 
 from lucidia_llm import OllamaLLM
 
@@ -22,13 +23,12 @@ def test_generate_calls_ollama_correctly():
         )
         assert result == "Hello"
 
-    
 
 def test_generate_includes_options_when_provided():
     client = OllamaLLM(model="test-model", base_url="http://example.com")
     mock_response = {"response": "Hi there"}
 
-    with patch("requests.post") as mock_post:
+    with patch("lucidia_llm.ollama.requests.post") as mock_post:
         mock_post.return_value.json.return_value = mock_response
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -38,7 +38,12 @@ def test_generate_includes_options_when_provided():
 
         mock_post.assert_called_once_with(
             "http://example.com/api/generate",
-            json={"model": "test-model", "prompt": "Hi", "stream": False, "options": opts},
+            json={
+                "model": "test-model",
+                "prompt": "Hi",
+                "stream": False,
+                "options": opts,
+            },
             timeout=30,
         )
         assert result == "Hi there"

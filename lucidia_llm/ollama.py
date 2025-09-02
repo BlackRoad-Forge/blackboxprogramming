@@ -7,8 +7,9 @@ experimentation within the Lucidia project.
 
 from __future__ import annotations
 
-import requests
 from typing import Any, Dict, Optional
+
+import requests
 
 
 class OllamaLLM:
