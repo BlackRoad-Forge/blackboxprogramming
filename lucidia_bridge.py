@@ -73,6 +73,7 @@ class LucidiaBridge:
                 "status": "heartbeat_received",
                 "agent_id": agent_id,
                 "lucidia_identity": self.lucidia.identity.current_hash,
+                "metrics": metrics,
                 "timestamp": heartbeat_ts,
             }
 
