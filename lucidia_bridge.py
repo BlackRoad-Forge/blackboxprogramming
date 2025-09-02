@@ -66,7 +66,7 @@ class LucidiaBridge:
             if agent_id not in self.active_agents:
                 return JSONResponse({"error": "agent_not_registered"}, status_code=404)
             metrics = data.get("metrics", {})
-            self.agent_metrics.setdefault(agent_id, {}).update(metrics)
+            self.agent_metrics[agent_id] = dict(metrics)
             heartbeat_ts = datetime.now(tz=UTC).isoformat()
             self.active_agents[agent_id]["last_heartbeat"] = heartbeat_ts
             return {
