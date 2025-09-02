@@ -96,6 +96,10 @@ class TestAgentManagement:
         assert data["agent_id"] == agent_data["agent_id"]
         assert data["lucidia_identity"] == lucidia_bridge.lucidia.identity.current_hash
         assert data["metrics"] == heartbeat_data["metrics"]
+        assert (
+            lucidia_bridge.agent_metrics[agent_data["agent_id"]]
+            == heartbeat_data["metrics"]
+        )
         assert "timestamp" in data
         assert (
             lucidia_bridge.active_agents[agent_data["agent_id"]]["last_heartbeat"]
