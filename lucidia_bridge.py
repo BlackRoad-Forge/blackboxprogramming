@@ -39,7 +39,7 @@ class LucidiaBridge:
                 "status": "healthy",
                 "lucidia_identity": self.lucidia.identity.current_hash,
                 "active_agents": len(self.active_agents),
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": datetime.now(tz=UTC).isoformat(),
             }
 
         @app.post("/agent/register")
@@ -53,7 +53,7 @@ class LucidiaBridge:
                 "type": agent["agent_type"],
                 "capabilities": agent.get("capabilities", []),
                 "status": "active",
-                "registered_at": datetime.now(UTC).isoformat(),
+                "registered_at": datetime.now(tz=UTC).isoformat(),
             }
             return {
                 "status": "registered",
@@ -68,7 +68,7 @@ class LucidiaBridge:
             metrics = data.get("metrics", {})
             self.agent_metrics.setdefault(agent_id, {}).update(metrics)
             self.active_agents[agent_id]["last_heartbeat"] = datetime.now(
-                UTC
+                tz=UTC
             ).isoformat()
             return {"status": "heartbeat_received"}
 
@@ -87,7 +87,7 @@ class LucidiaBridge:
             except Exception as exc:  # pragma: no cover - exercised in tests
                 return JSONResponse({"error": str(exc)}, status_code=500)
             event = {
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": datetime.now(tz=UTC).isoformat(),
                 "agent_id": data.get("agent_id", ""),
                 "content_hash": res["content_hash"],
                 "confidence": data.get("confidence"),
