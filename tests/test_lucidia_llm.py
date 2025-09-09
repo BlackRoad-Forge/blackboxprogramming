@@ -70,3 +70,22 @@ def test_generate_handles_invalid_json():
     with patch("lucidia_llm.ollama.requests.post", return_value=mock_resp):
         with pytest.raises(RuntimeError):
             client.generate("Hello")
+
+
+def test_generate_normalizes_trailing_slash_in_base_url():
+    client = OllamaLLM(model="test", base_url="http://example.com/")
+    mock_response = {"response": "ok"}
+
+    with patch("lucidia_llm.ollama.requests.post") as mock_post:
+        mock_post.return_value.json.return_value = mock_response
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+
+        result = client.generate("ping")
+
+        mock_post.assert_called_once_with(
+            "http://example.com/api/generate",
+            json={"model": "test", "prompt": "ping", "stream": False},
+            timeout=30,
+        )
+        assert result == "ok"
