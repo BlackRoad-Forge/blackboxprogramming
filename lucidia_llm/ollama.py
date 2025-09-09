@@ -15,7 +15,8 @@ class OllamaLLM:
     model:
         Name of the model loaded in the Ollama instance.
     base_url:
-        Base URL of the Ollama server. Defaults to ``http://localhost:11434``.
+        Base URL of the Ollama server. Trailing slashes are stripped. Defaults to
+        ``http://localhost:11434``.
     timeout:
         Request timeout in seconds. Defaults to ``30`` seconds.
     """
