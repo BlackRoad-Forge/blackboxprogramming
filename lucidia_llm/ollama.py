@@ -1,8 +1,4 @@
-"""Lightweight interface for interacting with LLM backends.
-
-Currently only supports [Ollama](https://ollama.ai) via its HTTP API for
-non-streaming text generation.
-"""
+"""Lightweight client for non-streaming text generation via Ollama's HTTP API."""
 
 from __future__ import annotations
 
