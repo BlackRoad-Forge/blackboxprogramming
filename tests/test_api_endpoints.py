@@ -82,6 +82,7 @@ class TestAgentManagement:
             "metrics": {
                 "analysis_runs": 5,
                 "quality_score": 0.85,
+                "nested": {"inner": 1},
             }
         }
 
@@ -104,9 +105,17 @@ class TestAgentManagement:
             lucidia_bridge.agent_metrics[agent_data["agent_id"]]
             is not heartbeat_data["metrics"]
         )
+        assert (
+            lucidia_bridge.agent_metrics[agent_data["agent_id"]]["nested"]
+            is not heartbeat_data["metrics"]["nested"]
+        )
         heartbeat_data["metrics"]["analysis_runs"] = 10
+        heartbeat_data["metrics"]["nested"]["inner"] = 2
         assert (
             lucidia_bridge.agent_metrics[agent_data["agent_id"]]["analysis_runs"] == 5
+        )
+        assert (
+            lucidia_bridge.agent_metrics[agent_data["agent_id"]]["nested"]["inner"] == 1
         )
         assert "timestamp" in data
         assert (
