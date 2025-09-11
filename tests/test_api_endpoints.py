@@ -97,6 +97,8 @@ class TestAgentManagement:
         assert data["agent_id"] == agent_data["agent_id"]
         assert data["lucidia_identity"] == lucidia_bridge.lucidia.identity.current_hash
         assert data["metrics"] == heartbeat_data["metrics"]
+        assert data["metrics"] is not heartbeat_data["metrics"]
+        assert data["metrics"]["nested"] is not heartbeat_data["metrics"]["nested"]
         assert (
             lucidia_bridge.agent_metrics[agent_data["agent_id"]]
             == heartbeat_data["metrics"]
@@ -111,6 +113,8 @@ class TestAgentManagement:
         )
         heartbeat_data["metrics"]["analysis_runs"] = 10
         heartbeat_data["metrics"]["nested"]["inner"] = 2
+        assert data["metrics"]["analysis_runs"] == 5
+        assert data["metrics"]["nested"]["inner"] == 1
         assert (
             lucidia_bridge.agent_metrics[agent_data["agent_id"]]["analysis_runs"] == 5
         )
