@@ -67,14 +67,15 @@ class LucidiaBridge:
             if agent_id not in self.active_agents:
                 return JSONResponse({"error": "agent_not_registered"}, status_code=404)
             metrics = data.get("metrics", {})
-            self.agent_metrics[agent_id] = deepcopy(metrics)
+            metrics_copy = deepcopy(metrics)
+            self.agent_metrics[agent_id] = metrics_copy
             heartbeat_ts = datetime.now(tz=UTC).isoformat()
             self.active_agents[agent_id]["last_heartbeat"] = heartbeat_ts
             return {
                 "status": "heartbeat_received",
                 "agent_id": agent_id,
                 "lucidia_identity": self.lucidia.identity.current_hash,
-                "metrics": metrics,
+                "metrics": deepcopy(metrics_copy),
                 "timestamp": heartbeat_ts,
             }
 
