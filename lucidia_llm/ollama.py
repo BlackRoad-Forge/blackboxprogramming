@@ -1,4 +1,4 @@
-"""Client for non-streaming text generation via Ollama's HTTP API."""
+"""Simple client for non-streaming text generation using the Ollama HTTP API."""
 
 from __future__ import annotations
 
