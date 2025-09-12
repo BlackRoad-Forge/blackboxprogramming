@@ -68,4 +68,9 @@ class OllamaLLM:
         except ValueError as exc:
             raise RuntimeError(f"Invalid response from Ollama: {exc}") from exc
 
-        return data.get("response", "")
+        try:
+            return data["response"]
+        except KeyError as exc:
+            raise RuntimeError(
+                "Invalid response from Ollama: missing 'response' field"
+            ) from exc

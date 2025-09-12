@@ -70,3 +70,14 @@ def test_generate_handles_invalid_json():
     with patch("lucidia_llm.ollama.requests.post", return_value=mock_resp):
         with pytest.raises(RuntimeError):
             client.generate("Hello")
+
+
+def test_generate_requires_response_field():
+    client = OllamaLLM()
+    mock_resp = Mock()
+    mock_resp.raise_for_status.return_value = None
+    mock_resp.json.return_value = {}
+
+    with patch("lucidia_llm.ollama.requests.post", return_value=mock_resp):
+        with pytest.raises(RuntimeError):
+            client.generate("Hello")
