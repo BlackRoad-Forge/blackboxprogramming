@@ -66,6 +66,7 @@ def test_generate_handles_invalid_json():
     mock_resp = Mock()
     mock_resp.raise_for_status.return_value = None
     mock_resp.json.side_effect = ValueError("bad json")
+    mock_resp.text = "bad json"
 
     with patch("lucidia_llm.ollama.requests.post", return_value=mock_resp):
         with pytest.raises(RuntimeError):
@@ -81,3 +82,21 @@ def test_generate_requires_response_field():
     with patch("lucidia_llm.ollama.requests.post", return_value=mock_resp):
         with pytest.raises(RuntimeError):
             client.generate("Hello")
+
+
+def test_generate_trims_trailing_slash_from_base_url():
+    client = OllamaLLM(base_url="http://example.com/")
+    mock_response = {"response": "Hello"}
+
+    with patch("lucidia_llm.ollama.requests.post") as mock_post:
+        mock_post.return_value.json.return_value = mock_response
+        mock_post.return_value.raise_for_status.return_value = None
+
+        result = client.generate("Hi")
+
+        mock_post.assert_called_once_with(
+            "http://example.com/api/generate",
+            json={"model": "llama3", "prompt": "Hi", "stream": False},
+            timeout=30,
+        )
+        assert result == "Hello"

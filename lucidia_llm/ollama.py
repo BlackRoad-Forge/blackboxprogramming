@@ -1,4 +1,10 @@
-"""Client for non-streaming text generation via the Ollama HTTP API."""
+"""Lightweight helper for Ollama's non-streaming text generation API.
+
+The module currently exposes :class:`OllamaLLM`, which wraps the HTTP
+``/api/generate`` endpoint.  It keeps the implementation intentionally
+minimal so it can be embedded in other services without additional
+dependencies beyond ``requests``.
+"""
 
 from __future__ import annotations
 
@@ -66,7 +72,10 @@ class OllamaLLM:
         except requests.RequestException as exc:
             raise RuntimeError(f"Ollama request failed: {exc}") from exc
         except ValueError as exc:
-            raise RuntimeError(f"Invalid response from Ollama: {exc}") from exc
+            body = getattr(response, "text", "<unavailable>")
+            raise RuntimeError(
+                f"Invalid response from Ollama: {exc}. Response body: {body}"
+            ) from exc
 
         try:
             return data["response"]
