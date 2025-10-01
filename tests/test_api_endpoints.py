@@ -2,6 +2,8 @@
 
 from unittest.mock import Mock, patch
 
+from fastapi.routing import APIRoute
+
 
 class TestHealthEndpoint:
     """Test health check endpoint."""
@@ -434,6 +436,57 @@ class TestTelemetryOperations:
             # Verify agent data
             assert "test-agent-1" in data["active_agents"]
             assert data["active_agents"]["test-agent-1"]["type"] == "Curator"
+
+            telemetry_route = next(
+                route
+                for route in lucidia_bridge.app.routes
+                if isinstance(route, APIRoute) and route.path == "/telemetry/agents"
+            )
+            payload = telemetry_route.endpoint()
+
+            assert payload["active_agents"] == lucidia_bridge.active_agents
+            assert payload["agent_metrics"] == lucidia_bridge.agent_metrics
+            assert payload["recent_learning_events"] == lucidia_bridge.learning_events
+
+            assert payload["active_agents"] is not lucidia_bridge.active_agents
+            assert payload["agent_metrics"] is not lucidia_bridge.agent_metrics
+            assert (
+                payload["recent_learning_events"]
+                is not lucidia_bridge.learning_events
+            )
+            assert (
+                payload["active_agents"]["test-agent-1"]
+                is not lucidia_bridge.active_agents["test-agent-1"]
+            )
+            assert (
+                payload["agent_metrics"]["test-agent-1"]
+                is not lucidia_bridge.agent_metrics["test-agent-1"]
+            )
+            assert (
+                payload["recent_learning_events"][0]
+                is not lucidia_bridge.learning_events[0]
+            )
+
+            payload["active_agents"]["test-agent-1"]["status"] = "mutated"
+            payload["agent_metrics"]["test-agent-1"]["facts_learned"] = 999
+            payload["recent_learning_events"][0]["type"] = "mutated"
+
+            assert lucidia_bridge.active_agents["test-agent-1"]["status"] == "active"
+            assert (
+                lucidia_bridge.agent_metrics["test-agent-1"]["facts_learned"] == 25
+            )
+            assert lucidia_bridge.learning_events[0]["type"] == "assertion"
+
+            lucidia_bridge.active_agents["test-agent-1"]["registered_at"] = "changed"
+            lucidia_bridge.agent_metrics["test-agent-1"]["quality_score"] = 0.5
+            lucidia_bridge.learning_events[0]["confidence"] = 0.1
+
+            assert (
+                payload["active_agents"]["test-agent-1"]["registered_at"]
+                == "2024-01-01T12:00:00"
+            )
+            assert payload["agent_metrics"]["test-agent-1"]["quality_score"] == 0.87
+            assert payload["recent_learning_events"][0]["confidence"] == 0.9
 
 
 class TestErrorHandling:

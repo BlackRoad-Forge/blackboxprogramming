@@ -180,9 +180,9 @@ class LucidiaBridge:
         @app.get("/telemetry/agents")
         def telemetry_agents():
             return {
-                "active_agents": self.active_agents,
-                "agent_metrics": self.agent_metrics,
-                "recent_learning_events": self.learning_events,
+                "active_agents": deepcopy(self.active_agents),
+                "agent_metrics": deepcopy(self.agent_metrics),
+                "recent_learning_events": deepcopy(self.learning_events),
                 "system_stats": {
                     "total_facts": self.lucidia.get_fact_count(),
                     "active_contradictions": len(self.lucidia.get_contradictions()),
