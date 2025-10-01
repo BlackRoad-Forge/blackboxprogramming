@@ -89,3 +89,11 @@ def test_generate_normalizes_trailing_slash_in_base_url():
             timeout=30,
         )
         assert result == "ok"
+
+
+def test_base_url_assignment_normalizes_trailing_slash():
+    client = OllamaLLM()
+
+    client.base_url = "http://example.com/"
+
+    assert client.base_url == "http://example.com"
