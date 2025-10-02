@@ -1,4 +1,11 @@
-"""Simple client for non-streaming text generation via Ollama's HTTP API."""
+"""Utility helpers for Ollama's synchronous text-generation HTTP endpoint.
+
+The module exposes :class:`OllamaLLM`, a light wrapper around the
+``/api/generate`` endpoint that Lucidia uses for non-streaming completions.
+It keeps the surface area minimal while still surfacing the bits callers
+commonly need to tweak, such as the model name, server URL and request
+timeout.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +15,7 @@ import requests
 
 
 class OllamaLLM:
-    """Client for generating text using an Ollama server.
+    """Small helper for text generation against an Ollama server.
 
     Parameters
     ----------
