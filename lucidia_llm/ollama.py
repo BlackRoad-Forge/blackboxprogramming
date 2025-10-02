@@ -17,14 +17,14 @@ class OllamaLLM:
     base_url:
         Base URL of the Ollama server. Defaults to ``http://localhost:11434``.
     timeout:
-        Request timeout in seconds. Defaults to ``30`` seconds.
+        Request timeout in seconds. Defaults to ``30.0`` seconds.
     """
 
     def __init__(
         self,
         model: str = "llama3",
         base_url: str = "http://localhost:11434",
-        timeout: int = 30,
+        timeout: float = 30.0,
     ) -> None:
         self.model = model
         self.base_url = base_url.rstrip("/")
