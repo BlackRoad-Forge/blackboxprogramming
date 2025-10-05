@@ -1,10 +1,4 @@
-"""Lightweight helper for Ollama's non-streaming text generation API.
-
-The module currently exposes :class:`OllamaLLM`, which wraps the HTTP
-``/api/generate`` endpoint.  It keeps the implementation intentionally
-minimal so it can be embedded in other services without additional
-dependencies beyond ``requests``.
-"""
+"""Lightweight helper for Ollama's non-streaming text generation HTTP API."""
 
 from __future__ import annotations
 
