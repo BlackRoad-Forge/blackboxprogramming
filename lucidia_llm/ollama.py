@@ -7,6 +7,7 @@ It keeps the public surface tight while still surfacing the configuration
 callers routinely need to control, such as model selection, server URL,
 request timeout and optional generation tweaks passed through ``options``.
 """
+"""Lightweight client for non-streaming text generation via Ollama's HTTP API."""
 
 from __future__ import annotations
 
@@ -25,14 +26,14 @@ class OllamaLLM:
     base_url:
         Base URL of the Ollama server. Defaults to ``http://localhost:11434``.
     timeout:
-        Request timeout in seconds. Defaults to ``30`` seconds.
+        Request timeout in seconds. Defaults to ``30.0`` seconds.
     """
 
     def __init__(
         self,
         model: str = "llama3",
         base_url: str = "http://localhost:11434",
-        timeout: int = 30,
+        timeout: float = 30.0,
     ) -> None:
         self.model = model
         self.base_url = base_url.rstrip("/")

@@ -20,7 +20,7 @@ def test_generate_calls_ollama_correctly():
         mock_post.assert_called_once_with(
             "http://example.com/api/generate",
             json={"model": "test-model", "prompt": "Hi", "stream": False},
-            timeout=30,
+            timeout=30.0,
         )
         assert result == "Hello"
 
@@ -45,7 +45,7 @@ def test_generate_includes_options_when_provided():
                 "stream": False,
                 "options": opts,
             },
-            timeout=30,
+            timeout=30.0,
         )
         assert result == "Hi there"
 
