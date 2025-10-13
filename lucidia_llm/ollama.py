@@ -14,6 +14,10 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 import requests
+from json import JSONDecodeError
+from typing import Any, Dict, Optional
+
+import requests
 
 
 class OllamaLLM:
@@ -60,6 +64,9 @@ class OllamaLLM:
         ------
         RuntimeError
             If the request fails or the response cannot be decoded.
+            If the request fails or the response cannot be decoded. When JSON
+            decoding fails, the error message includes a truncated preview of
+            the raw response body to aid debugging.
         """
 
         payload = {
@@ -88,3 +95,14 @@ class OllamaLLM:
             raise RuntimeError(
                 "Invalid response from Ollama: missing 'response' field"
             ) from exc
+            data = response.json()
+        except (ValueError, JSONDecodeError) as exc:
+            response_preview = getattr(response, "text", "")
+            if len(response_preview) > 200:
+                response_preview = f"{response_preview[:197]}..."
+            raise RuntimeError(
+                "Ollama response could not be decoded as JSON. "
+                f"Raw response: {response_preview or '<empty response>'}"
+            ) from exc
+
+        return data.get("response", "")

@@ -57,6 +57,7 @@ def test_generate_handles_request_errors():
         "lucidia_llm.ollama.requests.post",
         side_effect=requests.RequestException("boom"),
     ):
+    with patch("lucidia_llm.ollama.requests.post", side_effect=requests.RequestException("boom")):
         with pytest.raises(RuntimeError):
             client.generate("Hi")
 
@@ -100,3 +101,36 @@ def test_generate_trims_trailing_slash_from_base_url():
             timeout=30,
         )
         assert result == "Hello"
+def test_generate_raises_on_invalid_json():
+    client = OllamaLLM()
+
+    with patch("lucidia_llm.ollama.requests.post") as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.side_effect = ValueError("bad json")
+        mock_post.return_value.text = "<!DOCTYPE html><html>invalid</html>"
+
+        with pytest.raises(RuntimeError) as exc_info:
+            client.generate("Hello")
+
+        assert "<!DOCTYPE html><html>invalid</html>" in str(exc_info.value)
+
+
+def test_generate_truncates_long_invalid_json_response():
+    client = OllamaLLM()
+
+    long_text = "a" * 250
+
+    with patch("lucidia_llm.ollama.requests.post") as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.side_effect = ValueError("bad json")
+        mock_post.return_value.text = long_text
+
+        with pytest.raises(RuntimeError) as exc_info:
+            client.generate("Hello")
+
+        message = str(exc_info.value)
+        assert long_text[:197] in message
+        assert long_text not in message
+        assert "..." in message
