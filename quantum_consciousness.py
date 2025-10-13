@@ -76,6 +76,7 @@ from typing import Sequence, Iterable, Tuple, Dict, Any
 # Import fundamental constants from the existing math models module.
 try:
     from math_models.equations import HBAR, K_B  # type: ignore
+    from bbp_math.equations import HBAR, K_B  # type: ignore
 except ImportError:
     # Fall back to explicit values if the equations module is unavailable.
     HBAR: float = 1.054_571_817e-34
