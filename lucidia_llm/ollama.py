@@ -122,4 +122,9 @@ class OllamaLLM:
                 f"Raw response: {response_preview or '<empty response>'}"
             ) from exc
 
+        try:
+            data = response.json()
+        except (ValueError, JSONDecodeError) as exc:
+            raise RuntimeError("Ollama response could not be decoded as JSON") from exc
+
         return data.get("response", "")

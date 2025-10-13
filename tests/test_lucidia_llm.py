@@ -159,3 +159,6 @@ def test_base_url_assignment_normalizes_trailing_slash():
     client.base_url = "http://example.com/"
 
     assert client.base_url == "http://example.com"
+
+        with pytest.raises(RuntimeError):
+            client.generate("Hello")
