@@ -1,14 +1,22 @@
 """Lightweight helper for Ollama's non-streaming text generation HTTP API."""
+"""Helpers for Ollama's non-streaming text-generation HTTP endpoint.
+
+The module exposes :class:`OllamaLLM`, a tiny façade over the
+``POST /api/generate`` route that Lucidia hits for synchronous completions.
+It keeps the public surface tight while still surfacing the configuration
+callers routinely need to control, such as model selection, server URL,
+request timeout and optional generation tweaks passed through ``options``.
+"""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping
 
 import requests
 
 
 class OllamaLLM:
-    """Client for generating text using an Ollama server.
+    """Small helper for text generation against an Ollama server.
 
     Parameters
     ----------
@@ -30,7 +38,9 @@ class OllamaLLM:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
-    def generate(self, prompt: str, options: dict[str, Any] | None = None) -> str:
+    def generate(
+        self, prompt: str, options: Mapping[str, Any] | None = None
+    ) -> str:
         """Generate a response from the model.
 
         Parameters
@@ -57,7 +67,7 @@ class OllamaLLM:
             "stream": False,
         }
         if options is not None:
-            payload["options"] = options
+            payload["options"] = dict(options)
         url = f"{self.base_url}/api/generate"
         try:
             response = requests.post(url, json=payload, timeout=self.timeout)
