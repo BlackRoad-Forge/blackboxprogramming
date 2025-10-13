@@ -8,6 +8,7 @@ callers routinely need to control, such as model selection, server URL,
 request timeout and optional generation tweaks passed through ``options``.
 """
 """Lightweight client for non-streaming text generation via Ollama's HTTP API."""
+"""Lightweight LLM client for non-streaming text generation via Ollama's HTTP API."""
 
 from __future__ import annotations
 
@@ -28,7 +29,9 @@ class OllamaLLM:
     model:
         Name of the model loaded in the Ollama instance.
     base_url:
-        Base URL of the Ollama server. Defaults to ``http://localhost:11434``.
+        Base URL of the Ollama server. Trailing slashes are stripped on
+        assignment to ensure consistent endpoint construction. Defaults to
+        ``http://localhost:11434``.
     timeout:
         Request timeout in seconds. Defaults to ``30.0`` seconds.
     """
@@ -40,12 +43,26 @@ class OllamaLLM:
         timeout: float = 30.0,
     ) -> None:
         self.model = model
-        self.base_url = base_url.rstrip("/")
+        self._base_url = ""
+        self.base_url = base_url
         self.timeout = timeout
 
     def generate(
         self, prompt: str, options: Mapping[str, Any] | None = None
     ) -> str:
+    @property
+    def base_url(self) -> str:
+        """Return the normalized Ollama base URL."""
+
+        return self._base_url
+
+    @base_url.setter
+    def base_url(self, value: str) -> None:
+        """Normalize and store the Ollama base URL."""
+
+        self._base_url = value.rstrip("/")
+
+    def generate(self, prompt: str, options: dict[str, Any] | None = None) -> str:
         """Generate a response from the model.
 
         Parameters

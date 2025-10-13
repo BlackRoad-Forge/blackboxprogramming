@@ -134,3 +134,28 @@ def test_generate_truncates_long_invalid_json_response():
         assert long_text[:197] in message
         assert long_text not in message
         assert "..." in message
+def test_generate_normalizes_trailing_slash_in_base_url():
+    client = OllamaLLM(model="test", base_url="http://example.com/")
+    mock_response = {"response": "ok"}
+
+    with patch("lucidia_llm.ollama.requests.post") as mock_post:
+        mock_post.return_value.json.return_value = mock_response
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+
+        result = client.generate("ping")
+
+        mock_post.assert_called_once_with(
+            "http://example.com/api/generate",
+            json={"model": "test", "prompt": "ping", "stream": False},
+            timeout=30,
+        )
+        assert result == "ok"
+
+
+def test_base_url_assignment_normalizes_trailing_slash():
+    client = OllamaLLM()
+
+    client.base_url = "http://example.com/"
+
+    assert client.base_url == "http://example.com"
