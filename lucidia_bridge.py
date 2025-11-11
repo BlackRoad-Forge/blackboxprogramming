@@ -1,38 +1,10 @@
-"""FastAPI bridge exposing Lucidia core functionality.
-
-The implementation here is intentionally lightweight; it only provides the
-endpoints and behaviour required by the unit tests.  The bridge keeps simple
-in-memory structures describing registered agents, their metrics and learning
-events.
-"""
+"""FastAPI bridge exposing a Lucidia core instance for the unit tests."""
 
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import UTC, datetime
-from __future__ import annotations
-
-from datetime import datetime
-from typing import Any, Dict, List
-
-from fastapi import FastAPI
-from __future__ import annotations
-
-from datetime import datetime
-from typing import Dict, Any
-
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
-
-
-class LucidiaBridge:
-    """Lightweight FastAPI bridge exposing Lucidia core operations."""
-
-    def __init__(self, lucidia, port: int = 8000) -> None:
-from __future__ import annotations
-
-from datetime import datetime
-from typing import Any, Dict
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -41,162 +13,86 @@ from lucidia_core import Lucidia
 
 
 class LucidiaBridge:
-    """Expose a :class:`Lucidia` instance through a REST API."""
-
-    def __init__(self, lucidia: Lucidia, port: int = 8000) -> None:
-from fastapi.encoders import jsonable_encoder
-
-
-class LucidiaBridge:
     """Minimal FastAPI bridge exposing Lucidia core operations."""
 
-    def __init__(self, lucidia, port: int = 8000) -> None:
-    """Minimal FastAPI bridge exposing Lucidia operations for tests."""
-
     def __init__(self, lucidia: Lucidia, port: int = 8000) -> None:
-
-class LucidiaBridge:
-    """Simple FastAPI bridge exposing Lucidia operations."""
-
-    def __init__(self, lucidia, port: int = 5001) -> None:
         self.lucidia = lucidia
         self.port = port
         self.app = FastAPI()
+
         self.active_agents: Dict[str, Dict[str, Any]] = {}
         self.agent_metrics: Dict[str, Dict[str, Any]] = {}
         self.learning_events: List[Dict[str, Any]] = []
 
-        @self.app.get("/health")
-        def health() -> Dict[str, Any]:
-            identity = getattr(self.lucidia, "identity", None)
-            return {
-                "status": "healthy",
-                "lucidia_identity": getattr(identity, "current_hash", ""),
-                "active_agents": len(self.active_agents),
-                "timestamp": datetime.now(UTC).isoformat(),
-            }
-
-        @self.app.post("/agent/register")
-        def register(agent: Dict[str, Any]) -> Dict[str, Any]:
-        self.learning_events: list = []
         self._setup_routes()
+
+    @staticmethod
+    def _timestamp() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    def _context_from_metadata(self, metadata: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        if isinstance(metadata, dict):
+            return dict(metadata.get("context", {}))
+        return {}
+
+    def _evidence_from_metadata(self, metadata: Optional[Dict[str, Any]]) -> List[Any]:
+        if isinstance(metadata, dict):
+            evidence = metadata.get("evidence", [])
+            return list(evidence) if isinstance(evidence, list) else []
+        return []
+
+    @staticmethod
+    def _serialise_fact(fact: Any) -> Dict[str, Any]:
+        if isinstance(fact, dict):
+            return dict(fact)
+        return {"id": getattr(fact, "id", getattr(fact, "fact_id", None))}
+
+    @classmethod
+    def _serialise_contradiction(cls, item: Any) -> Dict[str, Any]:
+        if isinstance(item, dict):
+            return dict(item)
+        facts = [cls._serialise_fact(f) for f in getattr(item, "facts", [])]
+        metadata = getattr(item, "metadata", {})
+        metadata_dict = dict(metadata) if isinstance(metadata, dict) else {}
+        return {
+            "id": getattr(item, "id", None),
+            "facts": facts,
+            "confidence": getattr(item, "confidence", None),
+            "status": getattr(item, "status", None),
+            "discovered_at": getattr(item, "discovered_at", None),
+            "metadata": metadata_dict,
+        }
 
     def _setup_routes(self) -> None:
         @self.app.get("/health")
-        def health():
-            return {
-                "status": "healthy",
-                "lucidia_identity": self.lucidia.identity.current_hash,
-                "active_agents": len(self.active_agents),
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-
-        @self.app.post("/agent/register")
-        def register(agent: Dict[str, Any]):
-            agent_id = agent.get("agent_id")
-            agent_type = agent.get("agent_type")
-            if not agent_id or not agent_type:
-                return JSONResponse(
-                    status_code=400,
-                    content={"error": "agent_id and agent_type required"},
-                )
-            self.active_agents[agent_id] = {
-                "type": agent_type,
-                "status": "active",
-                "registered_at": datetime.now(UTC).isoformat(),
-            }
-            identity = getattr(self.lucidia, "identity", None)
-            return {
-                "status": "registered",
-                "agent_id": agent_id,
-                "lucidia_identity": getattr(identity, "current_hash", ""),
-            }
-
-        @self.app.post("/agent/{agent_id}/heartbeat")
-        def heartbeat(agent_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-            if agent_id not in self.active_agents:
-                return JSONResponse(
-                    status_code=404,
-                    content={"error": "agent_not_registered"},
-                )
-            self.active_agents[agent_id][
-                "last_heartbeat"
-            ] = datetime.now(UTC).isoformat()
-            metrics = payload.get("metrics", {})
-        self.learning_events: list[Dict[str, Any]] = []
-        self._setup_routes()
-
-    # ------------------------------------------------------------------
-    def _setup_routes(self) -> None:
-        @self.app.get("/health")
         def health() -> Dict[str, Any]:
-    """FastAPI bridge providing access to the Lucidia core."""
-
-    def __init__(self, lucidia, port: int = 8000):
-        self.lucidia = lucidia
-        self.port = port
-        self.app = FastAPI()
-
-        self.active_agents: Dict[str, Dict[str, Any]] = {}
-        self.agent_metrics: Dict[str, Dict[str, Any]] = {}
-        self.learning_events = []
-
-        self._setup_routes()
-
-    def _setup_routes(self):
-        @self.app.get("/health")
-        def health():
+            identity = getattr(self.lucidia, "identity", None)
+            current_hash = getattr(identity, "current_hash", "")
             return {
                 "status": "healthy",
-                "lucidia_identity": getattr(self.lucidia.identity, "current_hash", ""),
+                "lucidia_identity": current_hash,
                 "active_agents": len(self.active_agents),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": self._timestamp(),
             }
 
         @self.app.post("/agent/register")
-        def register_agent(data: Dict[str, Any]):
-            if not data.get("agent_id") or not data.get("agent_type"):
-                return JSONResponse(status_code=400, content={"error": "agent_id and agent_type required"})
-            agent_id = data["agent_id"]
-            self.active_agents[agent_id] = {
-                "type": data["agent_type"],
-                "capabilities": data.get("capabilities", []),
-            agent_id = data.get("agent_id")
-            agent_type = data.get("agent_type")
-            if not agent_id or not agent_type:
-                return JSONResponse(status_code=400, content={"error": "agent_id and agent_type required"})
-            self.active_agents[agent_id] = {
-                "type": agent_type,
-                "capabilities": data.get("capabilities", []),
         def register_agent(agent: Dict[str, Any]):
             agent_id = agent.get("agent_id")
             agent_type = agent.get("agent_type")
             if not agent_id or not agent_type:
-                return JSONResponse({"error": "agent_id and agent_type required"}, status_code=400)
+                return JSONResponse(
+                    status_code=400, content={"error": "agent_id and agent_type required"}
+                )
             self.active_agents[agent_id] = {
                 "type": agent_type,
+                "capabilities": agent.get("capabilities", []),
                 "status": "active",
-                "registered_at": datetime.utcnow().isoformat(),
+                "registered_at": self._timestamp(),
             }
             return {
                 "status": "registered",
                 "agent_id": agent_id,
                 "lucidia_identity": getattr(self.lucidia.identity, "current_hash", ""),
-            }
-
-        @self.app.post("/agent/{agent_id}/heartbeat")
-        def agent_heartbeat(agent_id: str, data: Dict[str, Any]):
-            if agent_id not in self.active_agents:
-                return JSONResponse(status_code=404, content={"error": "agent_not_registered"})
-            self.active_agents[agent_id]["last_heartbeat"] = datetime.utcnow().isoformat()
-            metrics = data.get("metrics", {})
-                "registered_at": datetime.utcnow().isoformat(),
-                "capabilities": agent.get("capabilities", []),
-            }
-            return {
-                "status": "registered",
-                "agent_id": agent_id,
-                "lucidia_identity": self.lucidia.identity.current_hash,
             }
 
         @self.app.post("/agent/{agent_id}/heartbeat")
@@ -205,669 +101,134 @@ class LucidiaBridge:
                 return JSONResponse(
                     status_code=404, content={"error": "agent_not_registered"}
                 )
-            self.active_agents[agent_id][
-                "last_heartbeat"
-            ] = datetime.utcnow().isoformat()
+            timestamp = self._timestamp()
+            self.active_agents[agent_id]["last_heartbeat"] = timestamp
             metrics = payload.get("metrics", {})
-            self.agent_metrics.setdefault(agent_id, {}).update(metrics)
-            return {"status": "heartbeat_received"}
+            if isinstance(metrics, dict):
+                stored_metrics = deepcopy(metrics)
+            else:
+                stored_metrics = {}
+            self.agent_metrics[agent_id] = stored_metrics
+            response_metrics = deepcopy(stored_metrics)
+            return {
+                "status": "heartbeat_received",
+                "agent_id": agent_id,
+                "lucidia_identity": getattr(self.lucidia.identity, "current_hash", ""),
+                "metrics": response_metrics,
+                "timestamp": timestamp,
+            }
 
         @self.app.post("/knowledge/learn")
-        def learn(data: Dict[str, Any]) -> Dict[str, Any]:
-            content = data.get("content")
-            if content is None:
-                return JSONResponse(
-                    status_code=400, content={"error": "content required"}
-                )
-            try:
-                result = self.lucidia.learn(
-                    prop_type=data.get("type"),
-                    content=content,
-                    confidence=data.get("confidence", 0.0),
-                    context=data.get("metadata", {}).get("context", {}),
-                    evidence=(
-                        data.get("metadata", {}).get("evidence", [])
-                        if isinstance(data.get("metadata"), dict)
-                        else []
-                    ),
-                )
-            except Exception as exc:  # pragma: no cover - simple error pass-through
-                return JSONResponse(status_code=500, content={"error": str(exc)})
-
-            event = {
-                "timestamp": datetime.now(UTC).isoformat(),
-                "agent_id": data.get("agent_id"),
-                "content_hash": result.get("content_hash"),
-        def learn(data: Dict[str, Any]):
-            if not data.get("content"):
-                return JSONResponse(status_code=400, content={"error": "content required"})
-            try:
-                res = self.lucidia.learn(
-                    prop_type=data.get("type"),
-                    content=data.get("content"),
-                    confidence=data.get("confidence", 0.0),
-                    context=data.get("metadata", {}).get("context", {}),
-                    evidence=[],
-                )
-            except Exception as exc:
-                return JSONResponse(status_code=500, content={"error": str(exc)})
-            event = {
-                "timestamp": datetime.utcnow().isoformat(),
-                "agent_id": data.get("agent_id"),
-                "content_hash": res.get("content_hash"),
-                "confidence": data.get("confidence", 0.0),
-                "type": data.get("type"),
-            }
-            self.learning_events.append(event)
-
-            return {
-                "status": "learned",
-                **result,
-                "confidence": data.get("confidence", 0.0),
-            }
-
-        @self.app.post("/knowledge/query")
-        def query(data: Dict[str, Any]) -> Dict[str, Any]:
-            result = self.lucidia.query(**data)
-            return {
-                "results": result.get("results", []),
-                "count": len(result.get("results", [])),
-                "query": data,
-            }
-
-        @self.app.post("/knowledge/update_confidence")
-        def update_confidence(data: Dict[str, Any]) -> Dict[str, Any]:
-            fact_id = data.get("fact_id")
-            new_conf = data.get("confidence")
-            if fact_id is None or new_conf is None:
         def learn(payload: Dict[str, Any]):
+            content = payload.get("content")
+            if content is None:
+                return JSONResponse(status_code=400, content={"error": "content required"})
+            metadata = payload.get("metadata")
             try:
-                content = payload.get("content")
-                if not content:
-                    return JSONResponse(
-                        status_code=400, content={"error": "content required"}
-                    )
                 result = self.lucidia.learn(
                     prop_type=payload.get("type"),
                     content=content,
-                    confidence=payload.get("confidence"),
-                    context=payload.get("metadata", {}).get("context"),
-                    evidence=[],
+                    confidence=payload.get("confidence", 0.0),
+                    context=self._context_from_metadata(metadata),
+                    evidence=self._evidence_from_metadata(metadata),
                 )
-                self.learning_events.append(
-                    {
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "agent_id": payload.get("agent_id"),
-                        "content_hash": result.get("content_hash"),
-                        "confidence": payload.get("confidence"),
-                        "type": payload.get("type"),
-                    }
-                )
-                return {
-                    "status": "learned",
-                    **result,
-                    "confidence": payload.get("confidence"),
-                }
-            except Exception as exc:  # pragma: no cover - defensive
+            except Exception as exc:  # pragma: no cover - defensive wrapper
                 return JSONResponse(status_code=500, content={"error": str(exc)})
+
+            event = {
+                "timestamp": self._timestamp(),
+                "agent_id": payload.get("agent_id"),
+                "content_hash": result.get("content_hash"),
+                "confidence": payload.get("confidence", 0.0),
+                "type": payload.get("type"),
+            }
+            self.learning_events.append(event)
+            return {"status": "learned", **result, "confidence": payload.get("confidence", 0.0)}
 
         @self.app.post("/knowledge/query")
         def query(payload: Dict[str, Any]):
             results = self.lucidia.query(**payload)
-            return {**results, "count": len(results["results"]), "query": payload}
+            count = len(results.get("results", []))
+            return {**results, "count": count, "query": payload}
 
         @self.app.post("/knowledge/update_confidence")
         def update_confidence(payload: Dict[str, Any]):
             fact_id = payload.get("fact_id")
-            conf = payload.get("confidence")
-            if not fact_id or conf is None:
+            new_confidence = payload.get("confidence")
+            if fact_id is None or new_confidence is None:
                 return JSONResponse(
                     status_code=400,
                     content={"error": "fact_id and confidence required"},
                 )
-            self.lucidia.update_confidence(fact_id, new_conf)
+            try:
+                self.lucidia.update_confidence(fact_id, new_confidence)
+            except KeyError as exc:
+                return JSONResponse(status_code=404, content={"error": str(exc)})
             return {
                 "status": "updated",
                 "fact_id": fact_id,
-                "new_confidence": new_conf,
+                "new_confidence": new_confidence,
             }
 
         @self.app.get("/knowledge/contradictions")
-        def get_contradictions() -> Dict[str, Any]:
-            raw = self.lucidia.get_contradictions()
-            serialized: List[Dict[str, Any]] = []
-            for c in raw:
-                if isinstance(c, dict):
-                    serialized.append(c)
-                else:
-                    serialized.append(
-                        {
-                            "id": getattr(c, "id", None),
-                            "facts": [
-                                getattr(f, "id", None) for f in getattr(c, "facts", [])
-            self.lucidia.update_confidence(fact_id, conf)
-            return {"status": "updated", "fact_id": fact_id, "new_confidence": conf}
-
-        @self.app.get("/knowledge/contradictions")
         def get_contradictions():
-            items = []
-            for c in self.lucidia.get_contradictions():
-                if isinstance(c, dict):
-                    items.append(c)
-                else:
-                    items.append(
-                        {
-                            "id": getattr(c, "id", None),
-                            "facts": [
-                                getattr(f, "id", f) for f in getattr(c, "facts", [])
-                            ],
-                            "confidence": getattr(c, "confidence", None),
-                            "status": getattr(c, "status", None),
-                            "discovered_at": getattr(c, "discovered_at", None),
-                            "metadata": getattr(c, "metadata", {}),
-                        }
-                    )
-            return {"contradictions": serialized, "count": len(serialized)}
-
-        @self.app.post("/knowledge/quarantine_contradiction")
-        def quarantine(data: Dict[str, Any]) -> Dict[str, Any]:
-            proposition = data.get("proposition")
-            conflicting = data.get("conflicting_facts")
-                            "metadata": getattr(c, "metadata", None),
-                        }
-                    )
-            return {"contradictions": items, "count": len(items)}
+            raw = self.lucidia.get_contradictions()
+            serialised = [self._serialise_contradiction(item) for item in raw]
+            return {"contradictions": serialised, "count": len(serialised)}
 
         @self.app.post("/knowledge/quarantine_contradiction")
         def quarantine(payload: Dict[str, Any]):
             proposition = payload.get("proposition")
             conflicting = payload.get("conflicting_facts")
+            metadata = payload.get("metadata")
             if not proposition or not conflicting:
                 return JSONResponse(
                     status_code=400,
                     content={"error": "proposition and conflicting_facts required"},
                 )
             result = self.lucidia.quarantine_contradiction(
-                proposition, conflicting, data.get("metadata", {})
-        def agent_heartbeat(agent_id: str, payload: Dict[str, Any]):
-            if agent_id not in self.active_agents:
-                return JSONResponse(status_code=404, content={"error": "agent_not_registered"})
-            self.agent_metrics[agent_id] = payload.get("metrics", {})
-            self.active_agents[agent_id]["last_heartbeat"] = datetime.utcnow().isoformat()
-            return {"status": "heartbeat_received"}
-
-        @self.app.post("/knowledge/learn")
-        def learn(body: Dict[str, Any]):
-            content = body.get("content")
-            prop_type = body.get("type")
-            confidence = body.get("confidence")
-            if not content:
-                return JSONResponse(status_code=400, content={"error": "content required"})
-            try:
-                result = self.lucidia.learn(
-                    prop_type=prop_type,
-                    content=content,
-                    confidence=confidence,
-                    context=body.get("metadata", {}).get("context", {}),
-                    evidence=[],
-                )
-            except Exception as exc:  # noqa: BLE001 - we want consistent JSON errors
-                return JSONResponse(status_code=500, content={"error": str(exc)})
-            if body.get("agent_id"):
-                self.learning_events.append({
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "agent_id": body["agent_id"],
-                    "content_hash": result.get("content_hash"),
-                    "confidence": confidence,
-                    "type": prop_type,
-                })
-            return {
-                "status": "learned",
-                "content_hash": result.get("content_hash"),
-                "fact_id": result.get("fact_id"),
-                "confidence": confidence,
-            }
-
-        @self.app.post("/knowledge/query")
-        def query(body: Dict[str, Any]):
-            result = self.lucidia.query(
-                content=body.get("content"),
-                confidence=body.get("confidence"),
-                limit=body.get("limit"),
-            )
-            results = result.get("results", [])
-            return {"results": results, "count": len(results), "query": body}
-
-        @self.app.post("/knowledge/update_confidence")
-        def update_confidence(body: Dict[str, Any]):
-            fact_id = body.get("fact_id")
-            confidence = body.get("confidence")
-            if fact_id is None or confidence is None:
-                return JSONResponse(status_code=400, content={"error": "fact_id and confidence required"})
-            self.lucidia.update_confidence(fact_id, confidence)
-            return {"status": "updated", "fact_id": fact_id, "new_confidence": confidence}
-
-        @self.app.get("/knowledge/contradictions")
-        def get_contradictions():
-            contras = self.lucidia.get_contradictions()
-
-            def _serialize_fact(fact):
-                if isinstance(fact, dict):
-                    return fact
-                return {"id": getattr(fact, "id", None)}
-
-            def _serialize_contra(c):
-                if isinstance(c, dict):
-                    return c
-                return {
-                    "id": getattr(c, "id", None),
-                    "facts": [_serialize_fact(f) for f in getattr(c, "facts", [])],
-                    "confidence": getattr(c, "confidence", None),
-                    "status": getattr(c, "status", None),
-                    "discovered_at": getattr(c, "discovered_at", None),
-                    "metadata": getattr(c, "metadata", {}),
-                }
-
-            serialized = [_serialize_contra(c) for c in contras]
-            return {"contradictions": serialized, "count": len(serialized)}
-
-        @self.app.post("/knowledge/quarantine_contradiction")
-        def quarantine(body: Dict[str, Any]):
-            proposition = body.get("proposition")
-            conflicting = body.get("conflicting_facts")
-            if not proposition or not conflicting:
-                return JSONResponse(status_code=400, content={"error": "proposition and conflicting_facts required"})
-            result = self.lucidia.quarantine_contradiction(
                 proposition=proposition,
-                conflicting_facts=conflicting,
-                metadata=body.get("metadata", {}),
+                conflicting_facts=list(conflicting),
+                metadata=metadata,
             )
             return {"status": "quarantined", **result}
 
         @self.app.get("/identity/current")
-        def identity_current() -> Dict[str, Any]:
+        def current_identity() -> Dict[str, Any]:
             identity = getattr(self.lucidia, "identity", None)
+            if identity is None:
+                return JSONResponse(
+                    status_code=404, content={"error": "identity_unavailable"}
+                )
+            chain = getattr(identity, "chain", [])
+            events = []
+            if hasattr(identity, "get_continuity_events"):
+                events = deepcopy(identity.get_continuity_events())
             return {
                 "current_hash": getattr(identity, "current_hash", ""),
-                "chain_length": len(getattr(identity, "chain", [])),
-                "continuity_events": (
-                    identity.get_continuity_events()
-                    if hasattr(identity, "get_continuity_events")
-                    else []
-                ),
+                "chain_length": len(chain),
+                "continuity_events": events,
             }
 
         @self.app.get("/telemetry/agents")
         def agent_telemetry() -> Dict[str, Any]:
-            total_facts = (
-                self.lucidia.get_fact_count()
-                if hasattr(self.lucidia, "get_fact_count")
-                else 0
-            )
-            contradictions = self.lucidia.get_contradictions()
             identity = getattr(self.lucidia, "identity", None)
-            return {
-                "active_agents": self.active_agents,
-                "agent_metrics": self.agent_metrics,
-                "recent_learning_events": self.learning_events,
-                "system_stats": {
-                    "total_facts": total_facts,
-                    "active_contradictions": len(contradictions),
-                    "identity_chain_length": len(getattr(identity, "chain", [])),
-        self._setup_routes()
-
-    # ------------------------------------------------------------------ routes
-    def _setup_routes(self) -> None:
-        app = self.app
-
-        @app.get("/health")
-        def health() -> Dict[str, Any]:
-            return {
-                "status": "healthy",
-                "lucidia_identity": self.lucidia.identity.current_hash,
-                "active_agents": len(self.active_agents),
-                "timestamp": datetime.now(tz=UTC).isoformat(),
-            }
-
-        @app.post("/agent/register")
-        def register_agent(agent: Dict[str, Any]):
-            if "agent_id" not in agent or "agent_type" not in agent:
-                return JSONResponse(
-                    {"error": "agent_id and agent_type required"}, status_code=400
-                )
-            agent_id = agent["agent_id"]
-            self.active_agents[agent_id] = {
-                "type": agent["agent_type"],
-                "capabilities": agent.get("capabilities", []),
-                "status": "active",
-                "registered_at": datetime.now(tz=UTC).isoformat(),
-            }
-            return {
-                "status": "registered",
-                "agent_id": agent_id,
-                "lucidia_identity": self.lucidia.identity.current_hash,
-            }
-
-        @app.post("/agent/{agent_id}/heartbeat")
-        def heartbeat(agent_id: str, data: Dict[str, Any]):
-            if agent_id not in self.active_agents:
-                return JSONResponse({"error": "agent_not_registered"}, status_code=404)
-            metrics = data.get("metrics") or {}
-            stored_metrics = deepcopy(metrics)
-            self.agent_metrics[agent_id] = stored_metrics
-            heartbeat_ts = datetime.now(tz=UTC).isoformat()
-            self.active_agents[agent_id]["last_heartbeat"] = heartbeat_ts
-            return {
-                "status": "heartbeat_received",
-                "agent_id": agent_id,
-                "lucidia_identity": self.lucidia.identity.current_hash,
-                "metrics": deepcopy(stored_metrics),
-                "timestamp": heartbeat_ts,
-            }
-
-        @app.post("/knowledge/learn")
-        def learn(data: Dict[str, Any]):
-            if "content" not in data:
-                return JSONResponse({"error": "content required"}, status_code=400)
-            try:
-                res = self.lucidia.learn(
-                    prop_type=data.get("type"),
-                    content=data["content"],
-                    confidence=data.get("confidence", 0.0),
-                    context=data.get("metadata", {}).get("context", {}),
-                    evidence=data.get("metadata", {}).get("evidence", []),
-                )
-            except Exception as exc:  # pragma: no cover - exercised in tests
-                return JSONResponse({"error": str(exc)}, status_code=500)
-            event = {
-                "timestamp": datetime.now(tz=UTC).isoformat(),
-                "agent_id": data.get("agent_id", ""),
-                "content_hash": res["content_hash"],
-                "confidence": data.get("confidence"),
-                "type": data.get("type"),
-            }
-            self.learning_events.append(event)
-        def heartbeat(agent_id: str, payload: Dict[str, Any]):
-            if agent_id not in self.active_agents:
-                return JSONResponse({"error": "agent_not_registered"}, status_code=404)
-            self.active_agents[agent_id]["last_heartbeat"] = datetime.utcnow().isoformat()
-            metrics = payload.get("metrics")
-            if metrics:
-                self.agent_metrics.setdefault(agent_id, {}).update(metrics)
-            return {"status": "heartbeat_received"}
-
-        @self.app.post("/knowledge/learn")
-        def learn(payload: Dict[str, Any]):
-            if not payload.get("content"):
-                return JSONResponse({"error": "content required"}, status_code=400)
-            try:
-                res = self.lucidia.learn(
-                    prop_type=payload.get("type"),
-                    content=payload.get("content"),
-                    confidence=payload.get("confidence"),
-                    context=(payload.get("metadata") or {}).get("context"),
-                    evidence=(payload.get("metadata") or {}).get("evidence", []),
-                )
-            except Exception as exc:  # pragma: no cover - defensive
-                return JSONResponse({"error": str(exc)}, status_code=500)
-
-            event = {
-                "timestamp": datetime.utcnow().isoformat(),
-                "agent_id": payload.get("agent_id"),
-                "content_hash": res["content_hash"],
-                "confidence": payload.get("confidence"),
-                "type": payload.get("type"),
-            }
-            self.learning_events.append(event)
-
-            return {
-                "status": "learned",
-                "content_hash": res["content_hash"],
-                "fact_id": res["fact_id"],
-                "confidence": data.get("confidence"),
-            }
-
-        @app.post("/knowledge/query")
-        def query(data: Dict[str, Any]):
-            return {"status": "learned", **res, "confidence": data.get("confidence", 0.0)}
-
-        @self.app.post("/knowledge/query")
-        def query(data: Dict[str, Any]) -> Dict[str, Any]:
-            res = self.lucidia.query(
-                content=data.get("content", ""),
-                confidence=data.get("confidence"),
-                limit=data.get("limit", 10),
-            )
-            results = res.get("results", [])
-            return {"results": results, "count": len(results), "query": data}
-
-        @app.post("/knowledge/update_confidence")
-        def update_confidence(data: Dict[str, Any]):
-            if "fact_id" not in data or "confidence" not in data:
-                return JSONResponse(
-                    {"error": "fact_id and confidence required"}, status_code=400
-                )
-            self.lucidia.update_confidence(data["fact_id"], data["confidence"])
-            return {
-                "status": "updated",
-                "fact_id": data["fact_id"],
-                "new_confidence": data["confidence"],
-            }
-
-        @app.get("/knowledge/contradictions")
-        def get_contradictions():
-            raw = self.lucidia.get_contradictions()
-            contradictions = []
-            for c in raw:
-                if isinstance(c, dict):
-                    contradictions.append(c)
-                else:  # convert mock objects
-                    facts = []
-                    for f in getattr(c, "facts", []):
-                        fid = getattr(f, "id", f)
-                        facts.append({"id": fid})
-                    contradictions.append(
-                        {
-                            "id": getattr(c, "id", None),
-                            "facts": facts,
-                "confidence": payload.get("confidence"),
-            }
-
-        @self.app.post("/knowledge/query")
-        def query(payload: Dict[str, Any]) -> Dict[str, Any]:
-            res = self.lucidia.query(
-                content=payload.get("content"),
-                confidence=payload.get("confidence"),
-                limit=payload.get("limit", 10),
-            )
-            return {"results": res["results"], "count": len(res["results"]), "query": payload}
-
-        @self.app.post("/knowledge/update_confidence")
-        def update_confidence(payload: Dict[str, Any]):
-            if not payload.get("fact_id") or payload.get("confidence") is None:
-                return JSONResponse({"error": "fact_id and confidence required"}, status_code=400)
-            self.lucidia.update_confidence(payload["fact_id"], payload["confidence"])
-            return {
-                "status": "updated",
-                "fact_id": payload["fact_id"],
-                "new_confidence": payload["confidence"],
-            }
-
-        @self.app.get("/knowledge/contradictions")
-        def get_contradictions() -> Dict[str, Any]:
-            contras = self.lucidia.get_contradictions()
-            encoded = []
-            for c in contras:
-                if isinstance(c, dict):
-                    encoded.append(c)
-                else:
-                    encoded.append(
-                        {
-                            "id": getattr(c, "id", None),
-                            "facts": [getattr(f, "id", f) for f in getattr(c, "facts", [])],
-                            "confidence": getattr(c, "confidence", None),
-                            "status": getattr(c, "status", None),
-                            "discovered_at": getattr(c, "discovered_at", None),
-                            "metadata": getattr(c, "metadata", None),
-                        }
-                    )
-            return {"contradictions": contradictions, "count": len(contradictions)}
-
-        @app.post("/knowledge/quarantine_contradiction")
-        def quarantine(data: Dict[str, Any]):
-            if "proposition" not in data or "conflicting_facts" not in data:
-                return JSONResponse(
-                    {"error": "proposition and conflicting_facts required"},
-                    status_code=400,
-                )
-            res = self.lucidia.quarantine_contradiction(
-                proposition=data["proposition"],
-                conflicting_facts=data["conflicting_facts"],
-                metadata=data.get("metadata"),
-            )
-            return {"status": "quarantined", **res}
-
-        @app.get("/identity/current")
-        def identity_current():
-            return {"contradictions": encoded, "count": len(encoded)}
-
-        @self.app.post("/knowledge/quarantine_contradiction")
-        def quarantine(payload: Dict[str, Any]):
-            if not payload.get("proposition") or not payload.get("conflicting_facts"):
-                return JSONResponse({"error": "proposition and conflicting_facts required"}, status_code=400)
-            res = self.lucidia.quarantine_contradiction(
-                proposition=payload["proposition"],
-                conflicting_facts=payload["conflicting_facts"],
-                metadata=payload.get("metadata"),
-            )
-            return {"status": "quarantined", **res}
-
-        @self.app.get("/identity/current")
-        def current_identity() -> Dict[str, Any]:
-            ident = self.lucidia.identity
-            return {
-                "current_hash": ident.current_hash,
-                "chain_length": len(ident.chain),
-                "continuity_events": ident.get_continuity_events(),
-            }
-
-        @app.get("/telemetry/agents")
-        def telemetry_agents():
-            return {
+            chain_length = len(getattr(identity, "chain", [])) if identity else 0
+            total_facts = 0
+            if hasattr(self.lucidia, "get_fact_count"):
+                total_facts = self.lucidia.get_fact_count()
+            contradictions = self.lucidia.get_contradictions()
+            payload = {
                 "active_agents": deepcopy(self.active_agents),
                 "agent_metrics": deepcopy(self.agent_metrics),
                 "recent_learning_events": deepcopy(self.learning_events),
                 "system_stats": {
-                    "total_facts": self.lucidia.get_fact_count(),
-                    "active_contradictions": len(self.lucidia.get_contradictions()),
-                    "identity_chain_length": len(self.lucidia.identity.chain),
+                    "total_facts": total_facts,
+                    "active_contradictions": len(contradictions),
+                    "identity_chain_length": chain_length,
                 },
-            return {"results": res.get("results", []), "count": len(res.get("results", [])), "query": data}
-
-        @self.app.post("/knowledge/update_confidence")
-        def update_confidence(data: Dict[str, Any]):
-            if not data.get("fact_id") or data.get("confidence") is None:
-                return JSONResponse(status_code=400, content={"error": "fact_id and confidence required"})
-            self.lucidia.update_confidence(data["fact_id"], data["confidence"])
-            return {"status": "updated", "fact_id": data["fact_id"], "new_confidence": data["confidence"]}
-
-        @self.app.get("/knowledge/contradictions")
-        def get_contradictions() -> Dict[str, Any]:
-            raw = self.lucidia.get_contradictions()
-            processed: List[Dict[str, Any]] = []
-            for item in raw:
-                if isinstance(item, dict):
-                    processed.append(item)
-                else:
-                    facts = [
-                        {"id": getattr(f, "id", None)} if not isinstance(f, dict) else f
-                        for f in getattr(item, "facts", [])
-                    ]
-                    processed.append(
-                        {
-                            "id": getattr(item, "id", None),
-                            "facts": facts,
-                            "confidence": getattr(item, "confidence", None),
-                            "status": getattr(item, "status", None),
-                            "discovered_at": getattr(item, "discovered_at", None),
-                            "metadata": getattr(item, "metadata", {}),
-                        }
-                    )
-            return {"contradictions": processed, "count": len(processed)}
-
-        @self.app.post("/knowledge/quarantine_contradiction")
-        def quarantine(data: Dict[str, Any]):
-            if not data.get("proposition") or not data.get("conflicting_facts"):
-                return JSONResponse(status_code=400, content={"error": "proposition and conflicting_facts required"})
-            res = self.lucidia.quarantine_contradiction(
-                proposition=data["proposition"],
-                conflicting_facts=data["conflicting_facts"],
-                metadata=data.get("metadata", {}),
-            )
-            return {"status": "quarantined", **res}
-
-        @self.app.get("/identity/current")
-        def identity_current() -> Dict[str, Any]:
-        def identity_current():
-            identity = self.lucidia.identity
-            return {
-                "current_hash": getattr(identity, "current_hash", ""),
-                "chain_length": len(getattr(identity, "chain", [])),
-                "continuity_events": identity.get_continuity_events() if hasattr(identity, "get_continuity_events") else [],
             }
+            return payload
 
-        @self.app.get("/telemetry/agents")
-        def telemetry_agents() -> Dict[str, Any]:
-            stats = {
-                "total_facts": getattr(self.lucidia, "get_fact_count", lambda: len(self.lucidia.facts))(),
-                proposition=proposition,
-                conflicting_facts=conflicting,
-                metadata=payload.get("metadata"),
-            )
-            return {"status": "quarantined", **result}
 
-        @self.app.get("/identity/current")
-        def identity_current():
-            identity = self.lucidia.identity
-            return {
-                "current_hash": identity.current_hash,
-                "chain_length": len(identity.chain),
-                "continuity_events": identity.get_continuity_events(),
-            }
-
-        @self.app.get("/telemetry/agents")
-        def telemetry_agents():
-            stats = {
-                "total_facts": self.lucidia.get_fact_count(),
-                "active_contradictions": len(self.lucidia.get_contradictions()),
-                "identity_chain_length": len(getattr(self.lucidia.identity, "chain", [])),
-        @self.app.get("/telemetry/agents")
-        def telemetry() -> Dict[str, Any]:
-            stats = {
-                "total_facts": self.lucidia.get_fact_count(),
-                "active_contradictions": len(self.lucidia.get_contradictions()),
-                "identity_chain_length": len(self.lucidia.identity.chain),
-            }
-            return {
-                "active_agents": self.active_agents,
-                "agent_metrics": self.agent_metrics,
-                "recent_learning_events": self.learning_events[-10:],
-                "system_stats": stats,
-            }
-
-    def start_server(self):
-        import uvicorn
-
-        uvicorn.run(self.app, port=self.port)
-                "recent_learning_events": self.learning_events,
-                "system_stats": stats,
-            }
-
-    # ------------------------------------------------------------------
-    def start_server(self) -> None:  # pragma: no cover - not used in tests
-        import uvicorn
-
-        uvicorn.run(self.app, host="0.0.0.0", port=self.port)
-                "recent_learning_events": self.learning_events,
-                "system_stats": stats,
-            }
+__all__ = ["LucidiaBridge"]
