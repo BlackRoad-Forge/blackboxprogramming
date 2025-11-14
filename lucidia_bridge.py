@@ -50,7 +50,18 @@ class LucidiaBridge:
     @classmethod
     def _serialise_contradiction(cls, item: Any) -> Dict[str, Any]:
         if isinstance(item, dict):
-            return dict(item)
+            data = dict(item)
+            facts_source = data.get("facts")
+            if facts_source is None:
+                facts_source = data.get("conflicting_facts", [])
+            if isinstance(facts_source, (list, tuple)):
+                data["facts"] = [cls._serialise_fact(fact) for fact in facts_source]
+            else:
+                data["facts"] = []
+            data["id"] = data.get("id", data.get("contradiction_id"))
+            metadata = data.get("metadata", {})
+            data["metadata"] = dict(metadata) if isinstance(metadata, dict) else {}
+            return data
         facts = [cls._serialise_fact(f) for f in getattr(item, "facts", [])]
         metadata = getattr(item, "metadata", {})
         metadata_dict = dict(metadata) if isinstance(metadata, dict) else {}
