@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    # Uncomment to enable GPU acceleration (NVIDIA):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ollama-init
+    depends_on:
+      - ollama
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for Ollama to be ready...';
+        OLLAMA_READY=0;
+        for attempt in $(seq 1 30); do
+          if curl -sf http://ollama:11434/api/tags > /dev/null 2>&1; then
+            OLLAMA_READY=1;
+            break;
+          fi;
+          sleep 2;
+        done;
+        if [ \"$$OLLAMA_READY\" -eq 0 ]; then
+          echo 'ERROR: Ollama did not become ready within 60 seconds.';
+          exit 1;
+        fi;
+        echo 'Ollama is up - pulling default model (${OLLAMA_DEFAULT_MODEL:-llama3.2})...';
+        ollama pull ${OLLAMA_DEFAULT_MODEL:-llama3.2};
+        echo 'Model ready.';
+      "
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: "no"
+
+volumes:
+  ollama_data:
+    driver: local

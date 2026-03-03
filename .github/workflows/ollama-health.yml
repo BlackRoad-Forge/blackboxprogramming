@@ -1,0 +1,69 @@
+name: 🦙 Ollama Health Check
+
+on:
+  push:
+    paths:
+      - 'docker-compose.yml'
+      - 'scripts/ollama-setup.sh'
+      - '.env.example'
+      - '.github/workflows/ollama-health.yml'
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Ollama model to test'
+        required: false
+        default: 'llama3.2'
+
+jobs:
+  ollama-smoke-test:
+    name: Start Ollama & Verify API
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sh
+
+      - name: Start Ollama daemon
+        run: |
+          ollama serve &
+          echo "Waiting for Ollama to be ready..."
+          OLLAMA_READY=0
+          for attempt in $(seq 1 15); do
+            if curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; then
+              echo "✅ Ollama is ready."
+              OLLAMA_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$OLLAMA_READY" -eq 0 ]; then
+            echo "❌ Ollama daemon did not start within 30 seconds."
+            exit 1
+          fi
+
+      - name: Verify API responds
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:11434/api/tags)
+          echo "Ollama /api/tags status: $STATUS"
+          [ "$STATUS" = "200" ] || { echo "❌ Ollama API not healthy (status $STATUS)"; exit 1; }
+
+      - name: Pull model (no-op if already cached)
+        run: |
+          MODEL="${{ github.event.inputs.model || 'llama3.2' }}"
+          echo "Pulling model: $MODEL"
+          ollama pull "$MODEL"
+
+      - name: Run inference smoke test
+        run: |
+          MODEL="${{ github.event.inputs.model || 'llama3.2' }}"
+          RESPONSE=$(curl -sf http://localhost:11434/api/generate \
+            -d "{\"model\":\"$MODEL\",\"prompt\":\"Reply with one word: ready\",\"stream\":false}" \
+            | jq -r '.response // empty')
+          echo "Model response: $RESPONSE"
+          [ -n "$RESPONSE" ] || { echo "❌ Empty response from model"; exit 1; }
+          echo "✅ Ollama inference working."

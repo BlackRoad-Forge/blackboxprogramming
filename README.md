@@ -117,6 +117,57 @@ This organization is part of the **BlackRoad Ecosystem** - a comprehensive sover
 
 ---
 
+## 🦙 Ollama — Local AI (No External Provider)
+
+Run AI models **100% locally** on your own machine. No OpenAI. No Anthropic. No cloud bill. Your hardware, your models, your data.
+
+### Quick Start
+
+```bash
+# Option A — bare metal (Linux/macOS)
+bash scripts/ollama-setup.sh          # installs Ollama + pulls llama3.2
+
+# Option B — Docker Compose
+cp .env.example .env                  # tweak model/port if needed
+docker compose up -d                  # starts Ollama + auto-pulls default model
+```
+
+### Configuration
+
+Copy `.env.example` to `.env` and adjust:
+
+| Variable | Default | Description |
+|---|---|---|
+| `OLLAMA_PORT` | `11434` | Port Ollama listens on |
+| `OLLAMA_HOST` | `http://localhost:11434` | API base URL for apps |
+| `OLLAMA_DEFAULT_MODEL` | `llama3.2` | Model pulled on first run |
+
+### Use It
+
+```bash
+# Interactive chat
+ollama run llama3.2
+
+# REST API (same interface used by apps)
+curl http://localhost:11434/api/generate \
+  -d '{"model":"llama3.2","prompt":"Explain quantum computing in one sentence.","stream":false}'
+```
+
+### Available Models
+
+Browse the full library at **https://ollama.com/library**. Popular picks:
+
+| Model | Size | Notes |
+|---|---|---|
+| `llama3.2` | ~2 GB | Default — fast, capable |
+| `mistral` | ~4 GB | Strong reasoning |
+| `phi3` | ~2 GB | Microsoft, efficient |
+| `gemma2:2b` | ~1.6 GB | Google, very lightweight |
+| `deepseek-r1:14b` | ~9 GB | Excellent for coding |
+| `llama3.1:70b` | ~40 GB | Maximum power (GPU recommended) |
+
+---
+
 ## 🤖 AI Systems Documentation
 
 ### Codex-Infinity
