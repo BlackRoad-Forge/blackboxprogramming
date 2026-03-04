@@ -1,0 +1,26 @@
+[Unit]
+Description=BlackRoad Stripe Service
+Documentation=https://github.com/blackboxprogramming/blackboxprogramming
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/blackroad/stripe-service
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+StartLimitBurst=5
+
+# Env file — copy .env.example and fill in real values at /opt/blackroad/stripe-service/.env
+EnvironmentFile=-/opt/blackroad/stripe-service/.env
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/blackroad/stripe-service
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
