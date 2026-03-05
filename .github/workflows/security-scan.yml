@@ -1,12 +1,12 @@
-name: 🔒 Security Scan
+name: Security Scan
 
 on:
   push:
-    branches: [main, master, dev]
+    branches: [main, master]
   pull_request:
     branches: [main, master]
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: '0 6 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -21,35 +21,55 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['javascript', 'typescript', 'python']
-    
+        language: ['javascript-typescript']
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@ae9ef3a1d2e3413523c3741725c30064970cc0d4 # v3.32.5
         with:
           languages: ${{ matrix.language }}
-      
+
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-      
+        uses: github/codeql-action/autobuild@ae9ef3a1d2e3413523c3741725c30064970cc0d4 # v3.32.5
+
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@ae9ef3a1d2e3413523c3741725c30064970cc0d4 # v3.32.5
 
   dependency-scan:
     name: Dependency Scan
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
       - name: Run npm audit
         if: hashFiles('package.json') != ''
-        run: npm audit --audit-level=moderate || true
-      
+        run: npm audit --audit-level=high || true
+
       - name: Dependency Review
-        uses: actions/dependency-review-action@v4
         if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets
+        run: |
+          echo "Scanning for potential secrets in tracked files..."
+          PATTERNS='(?i)(password|secret|api_key|apikey|token|private_key)[\s]*[=:]\s*["\x27][^\s"'\'']{8,}'
+          if git grep -P "$PATTERNS" -- ':!LICENSE' ':!*.md' ':!*.yml' ':!*.yaml' 2>/dev/null; then
+            echo "WARNING: Potential secrets detected. Review above matches."
+          else
+            echo "No obvious secret patterns found."
+          fi

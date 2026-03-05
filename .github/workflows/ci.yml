@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Validate workflow files
+        run: |
+          echo "Validating repository structure..."
+          for f in .github/workflows/*.yml; do
+            echo "Checking $f ..."
+            if ! head -1 "$f" | grep -q "^name:"; then
+              echo "WARNING: $f may have invalid YAML"
+            fi
+          done
+          echo "Workflow validation complete."
+
+      - name: Validate license
+        run: |
+          if [ ! -f "LICENSE" ]; then
+            echo "ERROR: LICENSE file missing"
+            exit 1
+          fi
+          echo "LICENSE file present."
+
+      - name: Validate README
+        run: |
+          if [ ! -f "README.md" ]; then
+            echo "ERROR: README.md file missing"
+            exit 1
+          fi
+          echo "README.md file present."
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    if: hashFiles('package.json') != ''
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Type Check
+        run: npm run typecheck --if-present || npm run type-check --if-present || true
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    if: hashFiles('package.json') != ''
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run Tests
+        run: npm test --if-present

@@ -16,7 +16,7 @@ updates:
       prefix: "chore"
       include: "scope"
 
-  # GitHub Actions
+  # GitHub Actions - pinned to SHA
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
