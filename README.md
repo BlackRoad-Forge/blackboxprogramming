@@ -1,56 +1,95 @@
 <div align="center">
 
-# BlackRoad OS, Inc.
+```
+    ____  __    ___   ________ __ ____  ____  ___    ____
+   / __ )/ /   /   | / ____/ //_// __ \/ __ \/   |  / __ \
+  / __  / /   / /| |/ /   / ,<  / /_/ / / / / /| | / / / /
+ / /_/ / /___/ ___ / /___/ /| |/ _, _/ /_/ / ___ |/ /_/ /
+/_____/_____/_/  |_\____/_/ |_/_/ |_|\____/_/  |_/_____/
+```
 
-**The Operating System for Governed AI**
+**I build systems from scratch. Compilers, quantum simulators, AI infrastructure, fleet orchestration.**
 
-Three products. One platform. Zero compliance gaps.
-
-[![Platform](https://img.shields.io/badge/Platform-blackroad.io-8A2BE2?style=for-the-badge)](https://blackroad.io)
-[![Lucidia](https://img.shields.io/badge/Lucidia-AI_Memory-DA70D6?style=for-the-badge)](https://github.com/blackboxprogramming/lucidia)
-[![Quantum](https://img.shields.io/badge/Quantum-Circuits-00E5FF?style=for-the-badge)](https://circuits.blackroad.io)
+[![CI](https://img.shields.io/badge/CI-passing-00e676?style=flat-square)](#projects)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](#projects)
+[![C99](https://img.shields.io/badge/C99-zero_deps-A8B9CC?style=flat-square&logo=c&logoColor=white)](#projects)
+[![Shell](https://img.shields.io/badge/Shell-400+_scripts-4EAA25?style=flat-square&logo=gnu-bash&logoColor=white)](#projects)
 
 </div>
 
 ---
 
-## Products
+## Projects
 
-**RoadAuth** — IAM built for compliance. 4 AI security agents. SOC 2, HIPAA, FedRAMP. [$53.9B TAM]
+### [RoadC](https://github.com/blackboxprogramming/roadc) &mdash; Programming Language
 
-**Lucidia** — The AI that remembers you. Universal memory, multi-AI orchestration, 108 local models. [$437.5B TAM]
+A custom language with Python-style indentation, built from scratch. Lexer, parser, AST, tree-walking interpreter in Python. Zero-dependency C99 compiler. Supports functions, recursion, pattern matching, type annotations.
 
-**Quantum** — Visual circuit designer and simulator. VQE, QAOA, Grover's, QFT. [$7-14B TAM]
+```road
+fun fibonacci(n: int) -> int:
+    if n <= 1:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+```
 
-## Key Repositories
+### [Quantum Math Lab](https://github.com/blackboxprogramming/quantum-math-lab) &mdash; Quantum Circuit Simulator
 
-| Product | Repository | Description |
-|---------|------------|-------------|
-| Platform | [BlackRoad-Operating-System](https://github.com/blackboxprogramming/BlackRoad-Operating-System) | Master monorepo — core OS, agents, SDK, services |
-| Lucidia | [lucidia](https://github.com/blackboxprogramming/lucidia) | Conversational AI with persistent memory |
-| Lucidia | [lucidia-cli](https://github.com/blackboxprogramming/lucidia-cli) | Sovereign coding CLI — explain, review, fix, copilot |
-| Quantum | [quantum-math-lab](https://github.com/blackboxprogramming/quantum-math-lab) | Quantum circuit simulator and algorithms |
-| Research | [simulation-theory](https://github.com/blackboxprogramming/simulation-theory) | SHA-256 hash chains, Godel incompleteness, 1,012 equations |
-| SDKs | [blackroad-api-sdks](https://github.com/blackboxprogramming/blackroad-api-sdks) | JavaScript, Python, Go, Ruby client libraries |
-| Scripts | [blackroad-scripts](https://github.com/blackboxprogramming/blackroad-scripts) | 612 shell scripts for fleet automation |
-| Marketing | [blackroad-advertising-playbook](https://github.com/blackboxprogramming/blackroad-advertising-playbook) | Psychology-driven advertising framework |
-| Portfolio | [alexa-amundson-portfolio](https://github.com/blackboxprogramming/alexa-amundson-portfolio) | 899K+ LOC, 125 deployments, 8 technical papers |
+Pure-Python state-vector simulator. Hadamard, Pauli-X, CNOT, custom unitaries, measurement with configurable RNG. Companion catalog of 10 unsolved problems in mathematics.
+
+```python
+circuit = QuantumCircuit(2)
+circuit.hadamard(0)
+circuit.cnot(0, 1)          # Bell state: |00> + |11>
+circuit.probabilities()      # {'00': 0.5, '11': 0.5}
+```
+
+### [The Trivial Zero](https://github.com/blackboxprogramming/simulation-theory) &mdash; Computational Philosophy
+
+675-section research paper with 20+ supporting Python demos. SHA-256 hash chains, Godel incompleteness, Riemann zeta zeros, DNA encoding, Lorenz chaos. Published to npm. Live evidence explorer and VR app.
+
+### [Universal Computer](https://github.com/blackboxprogramming/universal-computer) &mdash; Turing Machine Simulator
+
+Universal Turing machine implementation. Dictionary-based infinite tape, JSON machine descriptions, configurable step limits. Included machines: binary incrementer, parity checker, palindrome detector.
+
+### [Lucidia CLI](https://github.com/blackboxprogramming/lucidia-cli) &mdash; Terminal Operating System
+
+Full TUI application built on Textual/Rich. Terminal web browser with HTML parser, sandboxed virtual filesystem, Ollama AI agents with multi-personality council mode, background process manager.
+
+### [blackroad-scripts](https://github.com/blackboxprogramming/blackroad-scripts) &mdash; Fleet Automation
+
+400+ shell scripts managing a 5-node Raspberry Pi cluster. WireGuard mesh networking, Cloudflare tunnel orchestration, Docker Swarm, automated health monitoring, deployment pipelines.
+
+---
 
 ## Infrastructure
 
 ```
-5 Raspberry Pi 5 nodes · WireGuard mesh · 52 TOPS Hailo-8 AI
-108 Ollama models · 48+ domains · 18 Cloudflare tunnels · Docker Swarm
+Cluster        5x Raspberry Pi 5 (4x 8GB + 1x Pi 400)
+AI             2x Hailo-8 accelerators (52 TOPS), 16 Ollama models
+Networking     WireGuard mesh, 48 domains, 18 Cloudflare tunnels
+Storage        1TB NVMe, Gitea (207 repos), MinIO S3
+Orchestration  Docker Swarm, systemd fleet, cron autonomy
+Monitoring     Custom health agents, power optimization, thermal management
 ```
 
-## About
+All self-hosted. No cloud compute dependency.
 
-Built by **Alexa Amundson** in Lakeville, MN. From coding on an iPhone to a sovereign AI platform running on Raspberry Pis — no cloud dependency, no corporate data siphon.
+---
 
-**Contact:** amundsonalexa@gmail.com · [blackroad.io](https://blackroad.io)
+## Stats
+
+```
+Languages      Python, C, Shell, TypeScript, JavaScript, SQL
+Repos          49 public, 207 on self-hosted Gitea
+Scripts        400+ production shell scripts
+Test Suites    pytest, Playwright, shellcheck
+CI/CD          GitHub Actions across all active repos
+```
 
 ---
 
 <div align="center">
-<sub>&copy; 2026 BlackRoad OS, Inc. All rights reserved.</sub>
+
+**Alexa Amundson** &mdash; [blackroad.io](https://blackroad.io) &mdash; amundsonalexa@gmail.com
+
 </div>
