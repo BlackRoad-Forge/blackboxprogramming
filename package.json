@@ -1,0 +1,18 @@
+{
+  "name": "blackboxprogramming-ollama-extension",
+  "version": "1.0.0",
+  "description": "GitHub Copilot Extension that routes @copilot, @lucidia, and @blackboxprogramming requests to a local Ollama instance",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test src/tests/*.test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
